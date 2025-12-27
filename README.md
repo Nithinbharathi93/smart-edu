@@ -357,19 +357,13 @@ We love contributions! Here's how you can help:
 
 ---
 
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
 ## 💬 Support
 
 Need help? We're here for you!
 
-- 📧 Email: support@smart-edu.dev
-- 💭 GitHub Issues: [Report a Bug](https://github.com/yourusername/smart-edu/issues)
-- 💡 Discussions: [Ask a Question](https://github.com/yourusername/smart-edu/discussions)
+- 📧 Email: nithinbharathi9325@gmail.com
+- 💭 GitHub Issues: [Report a Bug](https://github.com/Nithinbharathi93/smart-edu/issues)
+- 💡 Discussions: [Ask a Question](https://github.com/Nithinbharathi93/smart-edu/discussions)
 
 ---
 
@@ -390,6 +384,6 @@ Need help? We're here for you!
 
 ### Made with ❤️ for the learning community
 
-**[⭐ Star us on GitHub](https://github.com/yourusername/smart-edu)** if you love Smart-Edu!
+**[⭐ Star us on GitHub](https://github.com/Nithinbharathi93/smart-edu)** if you love Smart-Edu!
 
 </div>
