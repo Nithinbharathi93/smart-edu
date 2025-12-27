@@ -12,7 +12,7 @@
 
 Transform how students learn with AI-powered course generation, intelligent problem solving, and real-time progress tracking.
 
-[Features](#features) • [Tech Stack](#tech-stack) • [Quick Start](#quick-start) • [Architecture](#architecture)
+[Features](#-features) • [Tech Stack](#-tech-stack) • [Quick Start](#-quick-start) • [Architecture](#-architecture)
 
 </div>
 
