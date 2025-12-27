@@ -13,17 +13,72 @@ const handleHfRequest = async (apiCall, res) => {
 
 
 export const getCodeComments = async (req, res) => {
-  const { code } = req.body;
+  const { code, questionTitle, sampleTestCase } = req.body;
+
+  if (!code) {
+    return res.status(400).json({ success: false, message: "Field 'code' is required." });
+  }
+
   const apiCall = async () => {
+    let systemPrompt = `You are a coding mentor. Analyze the provided code and return a JSON response with this exact structure:
+{
+  "overallFeedback": "One sentence overall assessment",
+  "strengths": ["strength 1", "strength 2"],
+  "improvements": ["improvement 1", "improvement 2", "improvement 3"],
+  "hints": ["hint 1", "hint 2", "hint 3"],
+  "edgeCases": ["edge case 1", "edge case 2"]
+}
+
+Provide constructive feedback without rewriting code. Be specific and educational.`;
+    let userContent = code;
+
+    if (questionTitle) {
+      systemPrompt += `\n\nProblem: ${questionTitle}`;
+    }
+
+    if (sampleTestCase) {
+      userContent += `\n\nSample Test Case:\n${sampleTestCase}`;
+    }
+
     const response = await hf.chatCompletion({
       model: "google/gemma-2-2b-it",
       messages: [
-        { role: "system", content: "You are a coding mentor. Provide 2-3 short hints to fix bugs. Do NOT rewrite code." },
-        { role: "user", content: code }
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent }
       ],
-      max_tokens: 1000
+      max_tokens: 1500
     });
-    return { hints: response.choices[0].message.content };
+
+    let feedbackData;
+    try {
+      const responseText = response.choices[0].message.content;
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        feedbackData = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error("No JSON found");
+      }
+    } catch (e) {
+      feedbackData = {
+        overallFeedback: "Analysis completed",
+        strengths: [],
+        improvements: [response.choices[0].message.content],
+        hints: [],
+        edgeCases: []
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        questionTitle: questionTitle || "Coding Problem",
+        overallFeedback: feedbackData.overallFeedback || "Code analysis completed",
+        strengths: feedbackData.strengths || [],
+        improvements: feedbackData.improvements || [],
+        hints: feedbackData.hints || [],
+        edgeCases: feedbackData.edgeCases || []
+      }
+    };
   };
   handleHfRequest(apiCall, res);
 };

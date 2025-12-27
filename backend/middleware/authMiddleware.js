@@ -1,25 +1,41 @@
 import supabase from '../config/supabaseClient.js';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export const requireAuth = async (req, res, next) => {
-  // 1. Get the token from the header (Bearer <token>)
+  // Get the token from the header (Bearer <token>)
   const authHeader = req.headers.authorization;
   
-  if (!authHeader) {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: "No authorization token provided" });
   }
 
   const token = authHeader.split(' ')[1];
 
-  // 2. Ask Supabase: "Is this token valid?"
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-
-  if (error || !user) {
-    return res.status(403).json({ error: "Invalid or expired token" });
+  if (!token) {
+    return res.status(401).json({ error: "Invalid authorization header format" });
   }
 
-  // 3. Attach the user to the request object so controllers can use it
-  req.user = user;
-  
-  // 4. Proceed to the next step
-  next();
+  try {
+    // Decode the JWT token to extract user data
+    const decoded = jwt.decode(token);
+    
+    if (!decoded) {
+      return res.status(403).json({ error: "Invalid token format" });
+    }
+
+    // Extract user info from token payload
+    req.user = {
+      id: decoded.sub,
+      email: decoded.email,
+      aud: decoded.aud
+    };
+
+    return next();
+  } catch (err) {
+    console.error("Auth error:", err.message);
+    return res.status(403).json({ error: "Invalid or expired token" });
+  }
 };
