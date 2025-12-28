@@ -60,9 +60,17 @@ const handleAiSubmit = async (e) => {
         
         const data = await response.json();
         
+        // Validate response - expected top-level key `syllabus_title`
+        if (!data || !data.syllabus_title) {
+          console.error('Unexpected syllabus response:', data);
+          alert('Received unexpected syllabus format from AI. Check server logs.');
+          setLoading(false);
+          return;
+        }
+
         // Save course to database
         try {
-          const saveCourseResponse = await fetch('http://localhost:5000/api/progress/save-course', {
+          const saveCourseResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/progress/save-course`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
@@ -77,6 +85,8 @@ const handleAiSubmit = async (e) => {
           if (saveCourseResponse.ok) {
             const savedCourse = await saveCourseResponse.json();
             console.log('Course saved:', savedCourse);
+          } else {
+            console.warn('Could not save course, status:', saveCourseResponse.status);
           }
         } catch (saveError) {
           console.error("Warning: Could not save course to database:", saveError);

@@ -197,9 +197,126 @@ VITE_API_URL=http://localhost:5000/api
 ### 3️⃣ Database Setup
 
 1. Go to [Supabase Dashboard](https://app.supabase.com)
-2. Copy the SQL migration from `backend/migrations/001_create_progress_tables.sql`
-3. Run it in Supabase SQL Editor
-4. Tables created: `user_courses`, `lesson_progress`, `practice_submissions`
+2. Copy and run the following SQL migrations in Supabase SQL Editor:
+
+**Migration 1: Enable Vector Extension & Core Tables**
+```sql
+create extension if not exists vector;
+
+create table documents (
+  id bigserial primary key,
+  filename text not null,
+  user_id uuid references auth.users(id) not null,
+  upload_date timestamp with time zone default timezone('utc'::text, now())
+);
+
+create table document_chunks (
+  id bigserial primary key,
+  document_id bigint references documents(id) on delete cascade,
+  content text,
+  embedding vector(384)
+);
+
+create or replace function match_documents (
+  query_embedding vector(384),
+  match_threshold float,
+  match_count int,
+  filter_user_id uuid
+)
+returns table (
+  id bigint,
+  content text,
+  similarity float
+)
+language plpgsql
+as $$
+begin
+  return query
+  select
+    document_chunks.id,
+    document_chunks.content,
+    1 - (document_chunks.embedding <=> query_embedding) as similarity
+  from document_chunks
+  join documents on documents.id = document_chunks.document_id
+  where 1 - (document_chunks.embedding <=> query_embedding) > match_threshold
+  and documents.user_id = filter_user_id
+  order by document_chunks.embedding <=> query_embedding
+  limit match_count;
+end;
+$$;
+```
+
+**Migration 2: User Courses & Progress Tracking**
+```sql
+create table if not exists user_courses (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  course_title text not null,
+  syllabus_data jsonb,
+  progress_percentage numeric default 0,
+  status text default 'in_progress',
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+create table if not exists lesson_progress (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  course_id uuid not null references user_courses(id) on delete cascade,
+  week_number integer,
+  exercise_index integer,
+  completed boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+create table if not exists practice_submissions (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  course_id uuid not null references user_courses(id) on delete cascade,
+  problem_id text,
+  code text,
+  language text,
+  is_passed boolean,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+```
+
+**Migration 3: AI-Generated Syllabi from PDFs** ⭐ *New*
+```sql
+create table if not exists public.syllabi (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  document_id bigint references public.documents(id) on delete cascade,
+  title text not null,
+  content jsonb not null,
+  source_pdf text,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+create index if not exists idx_syllabi_user_id on public.syllabi(user_id);
+create index if not exists idx_syllabi_document_id on public.syllabi(document_id);
+
+alter table public.syllabi enable row level security;
+
+create policy "Users can view their own syllabi"
+  on public.syllabi for select
+  using (auth.uid() = user_id);
+
+create policy "Users can create their own syllabi"
+  on public.syllabi for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update their own syllabi"
+  on public.syllabi for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete their own syllabi"
+  on public.syllabi for delete
+  using (auth.uid() = user_id);
+```
+
+3. Tables created: `documents`, `document_chunks`, `user_courses`, `lesson_progress`, `practice_submissions`, `syllabi`
 
 ### 4️⃣ Run the Application
 

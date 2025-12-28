@@ -2,13 +2,15 @@ import supabase from '../config/supabaseClient.js';
 
 export const ProgressModel = {
   // Save a course/syllabus for the user
-  async saveCourse(userId, courseTitle, syllabusData) {
+  async saveCourse(userId, courseTitle, syllabusData, sourceType = 'ai', documentId = null) {
     const { data, error } = await supabase
       .from('user_courses')
       .insert({
         user_id: userId,
         course_title: courseTitle,
         syllabus_data: syllabusData,
+        source_type: sourceType,
+        document_id: documentId,
         status: 'in_progress',
         progress_percentage: 0,
         created_at: new Date().toISOString()

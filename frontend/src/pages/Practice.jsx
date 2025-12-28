@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { 
   Play, 
   Cpu, 
@@ -192,9 +192,35 @@ const MarkdownRenderer = ({ content }) => {
 };
 
 export default function Practice() {
-  // --- AUTHENTICATION ---
+  // --- AUTHENTICATION & ROUTING ---
   const navigate = useNavigate();
+  const location = useLocation();
+  const { courseId, weekId, lessonId } = useParams();
   const [user, setUser] = useState(null);
+
+  // Extract courseData from location state (passed from CourseView)
+  const courseData = location.state?.courseData;
+  
+  // Extract key concepts from the specific week (based on weekId from URL)
+  const getTopicOptions = () => {
+    if (!courseData || !courseData.weeks) return [];
+    
+    // Get the week number from URL params
+    const currentWeekNumber = parseInt(weekId);
+    
+    // Find the current week in courseData
+    const currentWeek = courseData.weeks.find(w => w.weekNumber === currentWeekNumber);
+    
+    // Return only that week's concepts
+    if (currentWeek && currentWeek.keyConcepts && currentWeek.keyConcepts.length > 0) {
+      return currentWeek.keyConcepts;
+    }
+    
+    return [];
+  };
+
+  const topicOptions = getTopicOptions();
+  const defaultTopic = topicOptions.length > 0 ? topicOptions[0] : 'General';
 
   // --- STATE MANAGEMENT ---
   
@@ -204,7 +230,7 @@ export default function Practice() {
   // Problem State
   const [problem, setProblem] = useState(null);
   const [loadingProblem, setLoadingProblem] = useState(false);
-  const [filters, setFilters] = useState({ topic: 'Recursion', difficulty: 'Medium' });
+  const [filters, setFilters] = useState({ topic: defaultTopic, difficulty: 'Medium' });
 
   // Editor State
   const [code, setCode] = useState('// Write your code here\nconsole.log("Hello World");');
@@ -334,7 +360,12 @@ export default function Practice() {
         })
       });
       const data = await res.json();
-      setHint(data.data || data.suggestions || data.hints);
+      console.log("AI Response (Full):", data);
+      
+      // Use the data directly if it has the expected structure, otherwise check for wrapped versions
+      const hintData = data.data || data.suggestions || data;
+      console.log("Final Hint Data Being Set:", hintData);
+      setHint(hintData);
     } catch (error) {
       console.error(error);
       alert("Failed to get hint. Please try again.");
@@ -391,11 +422,9 @@ export default function Practice() {
               value={filters.topic}
               onChange={(e) => setFilters({...filters, topic: e.target.value})}
             >
-              <option>Recursion</option>
-              <option>Arrays</option>
-              <option>Dynamic Programming</option>
-              <option>Trees</option>
-              <option>Strings</option>
+              {topicOptions.map(topic => (
+                <option key={topic} value={topic}>{topic}</option>
+              ))}
             </select>
 
             <select 

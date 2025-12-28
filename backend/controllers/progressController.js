@@ -9,7 +9,8 @@ export const saveCourse = async (req, res) => {
       return res.status(400).json({ error: 'courseTitle and syllabusData are required' });
     }
 
-    const course = await ProgressModel.saveCourse(userId, courseTitle, syllabusData);
+    // Pass 'ai' as the source_type for AI-generated courses
+    const course = await ProgressModel.saveCourse(userId, courseTitle, syllabusData, 'ai');
     res.status(201).json({
       success: true,
       message: 'Course saved successfully',

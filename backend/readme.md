@@ -93,6 +93,42 @@ begin
 end;
 $$;
 
+-- Syllabi Table (For AI-generated course syllabi from PDFs)
+create table if not exists public.syllabi (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  document_id bigint references public.documents(id) on delete cascade,
+  title text not null,
+  content jsonb not null,
+  source_pdf text,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- Indexes for performance
+create index if not exists idx_syllabi_user_id on public.syllabi(user_id);
+create index if not exists idx_syllabi_document_id on public.syllabi(document_id);
+
+-- Enable RLS (Row Level Security)
+alter table public.syllabi enable row level security;
+
+-- RLS Policies
+create policy "Users can view their own syllabi"
+  on public.syllabi for select
+  using (auth.uid() = user_id);
+
+create policy "Users can create their own syllabi"
+  on public.syllabi for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update their own syllabi"
+  on public.syllabi for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete their own syllabi"
+  on public.syllabi for delete
+  using (auth.uid() = user_id);
+
 ```
 
 ### 4. Run Server
@@ -190,6 +226,31 @@ Except for Auth & Compiler routes, add this header to requests:
 
 * **Body Type:** `form-data`
 * **Key:** `pdf` (File)
+
+**POST** `/api/pdf/upload-pdf-and-generate-syllabus`
+*Upload PDF and auto-generate a structured learning syllabus.*
+
+* **Body Type:** `form-data`
+* **Key:** `pdf` (File)
+* **Returns:** Document info + Generated syllabus JSON + Syllabus ID
+
+```json
+{
+  "message": "PDF Uploaded and Syllabus Generated successfully!",
+  "document": {
+    "id": 1,
+    "filename": "learning-material.pdf",
+    "chunks": 15
+  },
+  "syllabus": {
+    "syllabus_title": "Course Name",
+    "target_audience": "Intermediate",
+    "prerequisites": ["Basic JavaScript"],
+    "weeks": [...]
+  },
+  "syllabusId": "uuid-here"
+}
+```
 
 **POST** `/api/pdf/chat`
 *Ask questions about the uploaded document.*

@@ -12,21 +12,27 @@ export default function CourseView() {
   
   // Transform the new data structure to match component expectations
   const transformCourseData = (data) => {
+    // Accept either `course_goals` or legacy `learning_goals`
+    const topLevelGoals = data.course_goals || data.learning_goals || [];
+
+    const weeks = (data.weeks || []).map((week, idx) => {
+      return {
+        weekNumber: week.week_number ?? idx + 1,
+        topic: week.theme || week.topic || `Week ${idx + 1}`,
+        topicsCovered: week.key_concepts || week.topics || week.topicsCovered || [],
+        keyConcepts: week.key_concepts || [],
+        exercises: week.activities_and_exercises || week.recommended_problems || week.exercises || [],
+        recommendedResources: week.recommended_resources || [],
+        notes: week.notes || ''
+      };
+    });
+
     return {
-      syllabusTitle: data.syllabus_title,
-      targetAudience: data.target_audience,
-      prerequisites: data.prerequisites,
-      learningObjectives: data.learning_goals,
-      weeks: data.weeks.map(week => ({
-        weekNumber: week.week_number,
-        topic: week.theme,
-        topicsCovered: week.topics,
-        keyConcepts: week.key_concepts,
-        recommendedProblems: week.recommended_problems,
-        notes: week.notes,
-        learningObjectives: data.learning_goals, // Reuse global goals for sidebar
-        exercises: week.recommended_problems
-      }))
+      syllabusTitle: data.syllabus_title || data.syllabusTitle || 'Untitled Syllabus',
+      targetAudience: data.target_audience || data.targetAudience || '',
+      prerequisites: data.prerequisites || [],
+      learningObjectives: topLevelGoals,
+      weeks
     };
   };
 
@@ -94,7 +100,7 @@ export default function CourseView() {
             </div>
             
             <div className="flex gap-3">
-               <Link to={`/practice/${courseId || 'generated-course'}/1/1`} className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition shadow-sm">
+               <Link to={`/practice/${courseId || 'generated-course'}/1/1`} state={{ courseData }} className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition shadow-sm">
                   <Terminal size={18} />
                   Practice
                </Link>
@@ -191,7 +197,7 @@ export default function CourseView() {
                             </li>
                           ))}
                         </ul>
-                        <Link to={`/practice/${courseId || 'generated-course'}/${week.weekNumber}/1`} className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition">
+                        <Link to={`/practice/${courseId || 'generated-course'}/${week.weekNumber}/1`} state={{ courseData }} className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition">
                           Start Exercises <Terminal size={14} />
                         </Link>
                       </div>

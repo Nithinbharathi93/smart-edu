@@ -7,7 +7,7 @@ import Dashboard from './pages/Dashboard';
 import CreateCourse from './pages/CreateCourse';
 import CourseView from './pages/CourseView';
 import Practice from './pages/Practice';
-
+import Chat from './pages/Chat';
 
 function App() {
   return (
@@ -21,6 +21,7 @@ function App() {
           <Route path="/create-course" element={<CreateCourse />} />
           <Route path="/course/:courseId" element={<CourseView />} />
           <Route path="/practice/:courseId/:weekId/:lessonId" element={<Practice />} />
+          <Route path="/chat" element={<Chat />} />
         </Routes>
       </div>
     </Router>
