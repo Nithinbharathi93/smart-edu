@@ -100,7 +100,19 @@ export default function CourseView() {
             </div>
             
             <div className="flex gap-3">
-               <Link to={`/practice/${courseId || 'generated-course'}/1/1`} state={{ courseData }} className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition shadow-sm">
+               <Link 
+                  to="/chat" 
+                  state={{ 
+                    courseData: courseData,
+                    syllabusData: courseData, // Pass full data as syllabus context
+                    contextType: location.state?.contextType || 'syllabus' // Default to syllabus if not specified
+                  }}
+                  className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700"
+               >
+                  <Bot size={18} />
+                  Chat
+               </Link>
+               <Link to={`/practice/${courseId || 'generated-course'}/1/1`} state={{ courseData }} className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition shadow-sm dark:bg-green-600 dark:hover:bg-green-700">
                   <Terminal size={18} />
                   Practice
                </Link>

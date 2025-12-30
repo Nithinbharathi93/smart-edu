@@ -9,22 +9,26 @@ import CourseView from './pages/CourseView';
 import Practice from './pages/Practice';
 import Chat from './pages/Chat';
 
+import { ThemeProvider } from './context/ThemeContext';
+
 function App() {
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-50 text-gray-900">
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/create-course" element={<CreateCourse />} />
-          <Route path="/course/:courseId" element={<CourseView />} />
-          <Route path="/practice/:courseId/:weekId/:lessonId" element={<Practice />} />
-          <Route path="/chat" element={<Chat />} />
-        </Routes>
-      </div>
-    </Router>
+    <ThemeProvider>
+      <Router>
+        <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-200">
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/create-course" element={<CreateCourse />} />
+            <Route path="/course/:courseId" element={<CourseView />} />
+            <Route path="/practice/:courseId/:weekId/:lessonId" element={<Practice />} />
+            <Route path="/chat" element={<Chat />} />
+          </Routes>
+        </div>
+      </Router>
+    </ThemeProvider>
   );
 }
 

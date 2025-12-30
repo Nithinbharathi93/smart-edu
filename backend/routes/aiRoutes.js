@@ -5,7 +5,8 @@ import {
     getBigOAnalysis, 
     generateSyllabus, 
     generateQuestions,
-    assessUserLevel // <--- Import the new controller
+    assessUserLevel,
+    generateSmartResponse // <--- Import the new controller
 } from '../controllers/aiController.js';
 
 const router = express.Router();
@@ -18,6 +19,7 @@ router.post('/code-comments', requireAuth, getCodeComments);
 router.post('/big-o', requireAuth, getBigOAnalysis);
 router.post('/generate-syllabus', requireAuth, generateSyllabus);
 router.post('/generate-coding-questions', requireAuth, generateQuestions);
+router.post('/smart-response', requireAuth, generateSmartResponse);
 
 // REMOVED: router.post('/safety-check', checkSafety);
 

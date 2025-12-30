@@ -119,7 +119,8 @@ const handleAiSubmit = async (e) => {
     formData.append('pdf', file);
 
     try {
-      const response = await fetch('http://localhost:5000/api/pdf/upload-pdf', {
+      // Use the parallel endpoint
+      const response = await fetch('http://localhost:5000/api/pdf/upload-pdf-and-generate-syllabus', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -128,10 +129,22 @@ const handleAiSubmit = async (e) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to upload PDF. Status: ' + response.status);
+        throw new Error('Failed to upload PDF and generate syllabus. Status: ' + response.status);
       }
 
-      navigate('/chat'); // Redirect to chat after upload
+      const data = await response.json();
+      console.log("PDF+Syllabus Data:", data);
+
+      // Redirect to CourseView with the new course data
+      // data should contain { courseId, syllabus, document }
+      navigate(`/course/${data.courseId}`, { 
+        state: { 
+          courseData: data.syllabus,
+          documentId: data.document.id, // Pass this for Chat context
+          contextType: 'pdf'
+        } 
+      });
+
     } catch (error) {
       console.error(error);
       alert(error.message);
