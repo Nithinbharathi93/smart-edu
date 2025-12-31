@@ -1,0 +1,432 @@
+API TEST RESULTS - 2025-12-31T05:12:27.562Z
+
+=== Login ===
+{
+  "message": "Login successful",
+  "token": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImFjNTc2ZWI2LWZkN2ItNDgwNy1iZmU2LTFlNDE0NmM1NWM2YiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL25vaGF3YmdvcWpnb212aGl3aWF4LnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiIzZjU2NDU4Ni0xZjNmLTRjYTYtOTY3MS1iYmI0NzY1NTA3NDciLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzY3MTYxNTUyLCJpYXQiOjE3NjcxNTc5NTIsImVtYWlsIjoibml0aGluYmhhcmF0aGk5MzI1QGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJuaXRoaW5iaGFyYXRoaTkzMjVAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiM2Y1NjQ1ODYtMWYzZi00Y2E2LTk2NzEtYmJiNDc2NTUwNzQ3In0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NjcxNTc5NTJ9XSwic2Vzc2lvbl9pZCI6Ijg3YWEzNzUwLWQxYjgtNDBhZC05ZWI0LWEwZjMxYmI4NTE2ZSIsImlzX2Fub255bW91cyI6ZmFsc2V9.bWiaU-hikCimt8GFXGdJf5awGzD3RSxTfa9tw2frywhjoEIAO5RCBl9zubeBYyVwWxBsWFc14Jd2a2kVShyxwA",
+  "user": {
+    "id": "3f564586-1f3f-4ca6-9671-bbb476550747",
+    "aud": "authenticated",
+    "role": "authenticated",
+    "email": "nithinbharathi9325@gmail.com",
+    "email_confirmed_at": "2025-12-30T16:09:04.151409Z",
+    "phone": "",
+    "confirmation_sent_at": "2025-12-30T16:08:31.873278Z",
+    "confirmed_at": "2025-12-30T16:09:04.151409Z",
+    "last_sign_in_at": "2025-12-31T05:12:32.082198829Z",
+    "app_metadata": {
+      "provider": "email",
+      "providers": [
+        "email"
+      ]
+    },
+    "user_metadata": {
+      "email": "nithinbharathi9325@gmail.com",
+      "email_verified": true,
+      "phone_verified": false,
+      "sub": "3f564586-1f3f-4ca6-9671-bbb476550747"
+    },
+    "identities": [
+      {
+        "identity_id": "47be5a46-ad14-45e7-b5cc-177a02ea3ff3",
+        "id": "3f564586-1f3f-4ca6-9671-bbb476550747",
+        "user_id": "3f564586-1f3f-4ca6-9671-bbb476550747",
+        "identity_data": {
+          "email": "nithinbharathi9325@gmail.com",
+          "email_verified": true,
+          "phone_verified": false,
+          "sub": "3f564586-1f3f-4ca6-9671-bbb476550747"
+        },
+        "provider": "email",
+        "last_sign_in_at": "2025-12-30T16:08:31.856005Z",
+        "created_at": "2025-12-30T16:08:31.856064Z",
+        "updated_at": "2025-12-30T16:08:31.856064Z",
+        "email": "nithinbharathi9325@gmail.com"
+      }
+    ],
+    "created_at": "2025-12-30T16:08:31.822112Z",
+    "updated_at": "2025-12-31T05:12:32.105126Z",
+    "is_anonymous": false
+  }
+}
+------------------------------
+
+=== List PDFs ===
+[
+  {
+    "id": 3,
+    "filename": "reactjs_book.pdf"
+  }
+]
+------------------------------
+
+=== Generate Topic Syllabus ===
+{
+  "syllabus": {
+    "syllabus_title": "Comprehensive Course on JavaScript",
+    "target_audience": "Beginner",
+    "prerequisites": [
+      "Basic understanding of HTML and CSS"
+    ],
+    "weeks": [
+      {
+        "week_number": 1,
+        "theme": "Introduction to JavaScript",
+        "learning_objectives": [
+          "Understand the basics of JavaScript",
+          "Install and configure a code editor",
+          "Write and execute a simple JavaScript program"
+        ],
+        "key_concepts": [
+          "Variables and Data Types",
+          "Operators and Control Structures",
+          "Functions and Modules"
+        ],
+        "activities": [
+          "Install Node.js and a code editor (e.g., Visual Studio Code)",
+          "Write and execute a simple 'Hello, World!' program",
+          "Complete a tutorial on setting up a JavaScript environment"
+        ]
+      },
+      {
+        "week_number": 2,
+        "theme": "Variables, Data Types, and Operators",
+        "learning_objectives": [
+          "Understand JavaScript variables and data types",
+          "Use operators for arithmetic, comparison, and logical operations",
+          "Work with strings and arrays"
+        ],
+        "key_concepts": [
+          "Variables and Hoisting",
+          "Data Types (Number, String, Boolean, Null, Undefined)",
+          "Operators (Arithmetic, Comparison, Logical)"
+        ],
+        "activities": [
+          "Complete exercises on variable declaration and data type conversion",
+          "Practice using operators for arithmetic and comparison operations",
+          "Work with strings and arrays using JavaScript methods"
+        ]
+      },
+      {
+        "week_number": 3,
+        "theme": "Control Structures and Functions",
+        "learning_objectives": [
+          "Understand JavaScript control structures (if/else, switch, loops)",
+          "Use functions to organize code and reuse functionality",
+          "Work with function arguments and return values"
+        ],
+        "key_concepts": [
+          "Conditional Statements (if/else)",
+          "Switch Statements",
+          "Loops (For, While, Do-While)",
+          "Functions and Function Arguments"
+        ],
+        "activities": [
+          "Complete exercises on if/else and switch statements",
+          "Practice using loops to iterate over arrays",
+          "Work with functions to organize and reuse code"
+        ]
+      },
+      {
+        "week_number": 4,
+        "theme": "Object-Oriented Programming and DOM Manipulation",
+        "learning_objectives": [
+          "Understand JavaScript object-oriented programming concepts",
+          "Use the Document Object Model (DOM) to manipulate HTML elements",
+          "Work with event listeners and event handlers"
+        ],
+        "key_concepts": [
+          "Objects and Constructors",
+          "Inheritance and Prototypal Inheritance",
+          "DOM Manipulation (getElementById, getElementsByTagName, querySelector)",
+          "Event Listeners and Event Handlers"
+        ],
+        "activities": [
+          "Complete exercises on object-oriented programming concepts",
+          "Practice using the DOM to manipulate HTML elements",
+          "Work with event listeners and event handlers to respond to user interactions"
+        ]
+      },
+      {
+        "week_number": 5,
+        "theme": "Error Handling and Debugging",
+        "learning_objectives": [
+          "Understand JavaScript error handling mechanisms (try/catch, throw)",
+          "Use debugging tools to identify and fix errors",
+          "Work with console.log and other debugging techniques"
+        ],
+        "key_concepts": [
+          "Error Handling (try/catch, throw)",
+          "Debugging Tools (Console, Debugger, Chrome DevTools)",
+          "Console.log and other debugging techniques"
+        ],
+        "activities": [
+          "Complete exercises on error handling and debugging",
+          "Practice using try/catch blocks to handle errors",
+          "Use debugging tools to identify and fix errors in code"
+        ]
+      },
+      {
+        "week_number": 6,
+        "theme": "JavaScript Frameworks and Libraries",
+        "learning_objectives": [
+          "Understand popular JavaScript frameworks and libraries (e.g., React, Angular, Vue)",
+          "Use a JavaScript framework or library to build a web application",
+          "Work with popular JavaScript libraries (e.g., jQuery, Lodash)"
+        ],
+        "key_concepts": [
+          "Popular JavaScript Frameworks and Libraries",
+          "Building a Web Application with a Framework or Library",
+          "Popular JavaScript Libraries (e.g., jQuery, Lodash)"
+        ],
+        "activities": [
+          "Complete a tutorial on a popular JavaScript framework or library",
+          "Practice building a web application with a framework or library",
+          "Work with popular JavaScript libraries to enhance code functionality"
+        ]
+      },
+      {
+        "week_number": 7,
+        "theme": "Project Development and Deployment",
+        "learning_objectives": [
+          "Understand the process of developing and deploying a JavaScript application",
+          "Use a version control system (e.g., Git) to manage code",
+          "Deploy a JavaScript application to a production environment"
+        ],
+        "key_concepts": [
+          "Project Development and Deployment",
+          "Version Control Systems (e.g., Git)",
+          "Deploying a JavaScript Application to a Production Environment"
+        ],
+        "activities": [
+          "Complete a project development and deployment exercise",
+          "Use a version control system to manage code",
+          "Deploy a JavaScript application to a production environment"
+        ]
+      }
+    ]
+  },
+  "id": 3,
+  "type": "topic-based"
+}
+------------------------------
+
+=== Get Syllabus By ID ===
+{
+  "id": 3,
+  "level": "Beginner",
+  "duration": "1 week",
+  "syllabus_data": {
+    "weeks": [
+      {
+        "theme": "Introduction to JavaScript",
+        "activities": [
+          "Install Node.js and a code editor (e.g., Visual Studio Code)",
+          "Write and execute a simple 'Hello, World!' program",
+          "Complete a tutorial on setting up a JavaScript environment"
+        ],
+        "week_number": 1,
+        "key_concepts": [
+          "Variables and Data Types",
+          "Operators and Control Structures",
+          "Functions and Modules"
+        ],
+        "learning_objectives": [
+          "Understand the basics of JavaScript",
+          "Install and configure a code editor",
+          "Write and execute a simple JavaScript program"
+        ]
+      },
+      {
+        "theme": "Variables, Data Types, and Operators",
+        "activities": [
+          "Complete exercises on variable declaration and data type conversion",
+          "Practice using operators for arithmetic and comparison operations",
+          "Work with strings and arrays using JavaScript methods"
+        ],
+        "week_number": 2,
+        "key_concepts": [
+          "Variables and Hoisting",
+          "Data Types (Number, String, Boolean, Null, Undefined)",
+          "Operators (Arithmetic, Comparison, Logical)"
+        ],
+        "learning_objectives": [
+          "Understand JavaScript variables and data types",
+          "Use operators for arithmetic, comparison, and logical operations",
+          "Work with strings and arrays"
+        ]
+      },
+      {
+        "theme": "Control Structures and Functions",
+        "activities": [
+          "Complete exercises on if/else and switch statements",
+          "Practice using loops to iterate over arrays",
+          "Work with functions to organize and reuse code"
+        ],
+        "week_number": 3,
+        "key_concepts": [
+          "Conditional Statements (if/else)",
+          "Switch Statements",
+          "Loops (For, While, Do-While)",
+          "Functions and Function Arguments"
+        ],
+        "learning_objectives": [
+          "Understand JavaScript control structures (if/else, switch, loops)",
+          "Use functions to organize code and reuse functionality",
+          "Work with function arguments and return values"
+        ]
+      },
+      {
+        "theme": "Object-Oriented Programming and DOM Manipulation",
+        "activities": [
+          "Complete exercises on object-oriented programming concepts",
+          "Practice using the DOM to manipulate HTML elements",
+          "Work with event listeners and event handlers to respond to user interactions"
+        ],
+        "week_number": 4,
+        "key_concepts": [
+          "Objects and Constructors",
+          "Inheritance and Prototypal Inheritance",
+          "DOM Manipulation (getElementById, getElementsByTagName, querySelector)",
+          "Event Listeners and Event Handlers"
+        ],
+        "learning_objectives": [
+          "Understand JavaScript object-oriented programming concepts",
+          "Use the Document Object Model (DOM) to manipulate HTML elements",
+          "Work with event listeners and event handlers"
+        ]
+      },
+      {
+        "theme": "Error Handling and Debugging",
+        "activities": [
+          "Complete exercises on error handling and debugging",
+          "Practice using try/catch blocks to handle errors",
+          "Use debugging tools to identify and fix errors in code"
+        ],
+        "week_number": 5,
+        "key_concepts": [
+          "Error Handling (try/catch, throw)",
+          "Debugging Tools (Console, Debugger, Chrome DevTools)",
+          "Console.log and other debugging techniques"
+        ],
+        "learning_objectives": [
+          "Understand JavaScript error handling mechanisms (try/catch, throw)",
+          "Use debugging tools to identify and fix errors",
+          "Work with console.log and other debugging techniques"
+        ]
+      },
+      {
+        "theme": "JavaScript Frameworks and Libraries",
+        "activities": [
+          "Complete a tutorial on a popular JavaScript framework or library",
+          "Practice building a web application with a framework or library",
+          "Work with popular JavaScript libraries to enhance code functionality"
+        ],
+        "week_number": 6,
+        "key_concepts": [
+          "Popular JavaScript Frameworks and Libraries",
+          "Building a Web Application with a Framework or Library",
+          "Popular JavaScript Libraries (e.g., jQuery, Lodash)"
+        ],
+        "learning_objectives": [
+          "Understand popular JavaScript frameworks and libraries (e.g., React, Angular, Vue)",
+          "Use a JavaScript framework or library to build a web application",
+          "Work with popular JavaScript libraries (e.g., jQuery, Lodash)"
+        ]
+      },
+      {
+        "theme": "Project Development and Deployment",
+        "activities": [
+          "Complete a project development and deployment exercise",
+          "Use a version control system to manage code",
+          "Deploy a JavaScript application to a production environment"
+        ],
+        "week_number": 7,
+        "key_concepts": [
+          "Project Development and Deployment",
+          "Version Control Systems (e.g., Git)",
+          "Deploying a JavaScript Application to a Production Environment"
+        ],
+        "learning_objectives": [
+          "Understand the process of developing and deploying a JavaScript application",
+          "Use a version control system (e.g., Git) to manage code",
+          "Deploy a JavaScript application to a production environment"
+        ]
+      }
+    ],
+    "prerequisites": [
+      "Basic understanding of HTML and CSS"
+    ],
+    "syllabus_title": "Comprehensive Course on JavaScript",
+    "target_audience": "Beginner"
+  },
+  "created_at": "2025-12-31T05:13:09.692884+00:00",
+  "document_id": null
+}
+------------------------------
+
+=== My Courses ===
+[
+  {
+    "id": 1,
+    "level": "Intermediate",
+    "duration": "4 weeks",
+    "syllabus_titleastitle": null,
+    "documents": {
+      "filename": "reactjs_book.pdf"
+    }
+  },
+  {
+    "id": 2,
+    "level": "Advanced",
+    "duration": "6 weeks",
+    "syllabus_titleastitle": null,
+    "documents": null
+  },
+  {
+    "id": 3,
+    "level": "Beginner",
+    "duration": "1 week",
+    "syllabus_titleastitle": null,
+    "documents": null
+  }
+]
+------------------------------
+
+=== Generate Problem ===
+{
+  "id": "eb48b259-c207-43be-8326-fae154ffbfea",
+  "title": "Variable Initialization",
+  "description": "Given a list of variable names and their corresponding initial values, create a function to initialize all variables with their given values. The function should return an object where the keys are the variable names and the values are the initial values.",
+  "difficulty": "Beginner",
+  "topics": [
+    "Variables"
+  ],
+  "constraints": [
+    "Variable names and values are strings",
+    "Variable names are unique"
+  ],
+  "examples": [
+    {
+      "input": "['a', 'b', 'c'], ['1', '2', '3']",
+      "output": {
+        "a": "1",
+        "b": "2",
+        "c": "3"
+      },
+      "explanation": "The function should return an object where 'a' is initialized with '1', 'b' is initialized with '2', and 'c' is initialized with '3'."
+    },
+    {
+      "input": "['x', 'y', 'z'], ['10', '20', '30']",
+      "output": {
+        "x": "10",
+        "y": "20",
+        "z": "30"
+      },
+      "explanation": "The function should return an object where 'x' is initialized with '10', 'y' is initialized with '20', and 'z' is initialized with '30'."
+    }
+  ],
+  "syllabus_id": 3,
+  "is_from_book": false
+}
+------------------------------

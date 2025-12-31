@@ -5,13 +5,15 @@ import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import pLimit from "p-limit";
 
-import { extractTextFromPDF, chunkText } from "./controllers/textExtractor.js";
+import { extractTextFromPDF, chunkText } from "./controllers/textExtractController.js";
 import { getEmbedding, getChatResponse } from "./controllers/aiController.js";
 import { listDocuments } from "./controllers/documentController.js";
 import { generateSyllabus } from "./controllers/syllabusController.js";
 import { signUp, signIn } from "./controllers/authController.js";
 import { generateCodingProblem } from "./controllers/problemController.js";
 import { generateTopicSyllabus } from "./controllers/topicSyllabusController.js";
+import { executeCode } from "./controllers/compilerController.js";
+import { generateSolution, provideGuidance } from "./controllers/tutorController.js";
 
 dotenv.config();
 
@@ -266,6 +268,40 @@ fastify.get("/get-syllabus/:id", async (req, reply) => {
   if (error || !data) return reply.code(404).send({ error: "Syllabus not found." });
   return data;
 });
+
+
+fastify.post("/compile", async (req, reply) => {
+  const { language, version, source_code } = req.body;
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+  if (!language || !source_code) {
+    return reply.code(400).send({ error: "Missing language or source_code" });
+  }
+  const result = await executeCode(language, version, source_code);
+  if (!result.success) {
+    return reply.code(500).send({ error: result.error });
+  }
+  return result;
+});
+
+fastify.post("/problem/solution", async (req, reply) => {
+  const { problem_details, language } = req.body;
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+  if (!problem_details) return reply.code(400).send({ error: "Missing problem details" });
+  const solution = await generateSolution(problem_details, language || "javascript");
+  return { solution };
+});
+
+fastify.post("/problem/guide", async (req, reply) => {
+  const { problem_details, user_query } = req.body;
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+  if (!problem_details) return reply.code(400).send({ error: "Missing problem details" });
+  const hint = await provideGuidance(problem_details, user_query);
+  return { hint };
+});
+
 
 const start = async () => {
   try {
