@@ -1,278 +1,129 @@
-# 🧠 AI-Powered Adaptive Learning Platform (Backend)
+# 🎓 Smart Edu: AI-Powered Learning Companion
 
-This is the backend server for an intelligent learning platform that adapts to the user's skill level. It features AI-generated syllabi, real-time code analysis, compiler integration, and a "Chat with your PDF" system using Vector RAG (Retrieval-Augmented Generation).
+Smart Edu is a full-stack RAG (Retrieval-Augmented Generation) application designed to transform static PDF documents into interactive, personalized learning experiences. Users can upload textbooks, chat with them based on their expertise level, and generate structured, time-bound syllabi.
+
+## 🚀 Features
+
+* **PDF Ingestion & Vectorization**: Extracts text from PDFs, chunks it intelligently, and stores it as 384-dimensional vectors in Supabase (`pgvector`).
+* **Adaptive Level-Based Chat**: Personalized tutor that adjusts its vocabulary and explanation depth based on user level (**Beginner**, **Intermediate**, **Advanced**).
+* **Dynamic Syllabus Generation**: Creates a structured JSON course plan including weekly themes, learning objectives, and activities based on the book's content.
+* **Smart Caching**: Syllabi are stored in Supabase to ensure instant retrieval and reduced API costs for repeat requests.
+* **Concurrency Management**: Uses `p-limit` to handle large document ingestion without hitting API rate limits or network resets.
 
 ## 🛠️ Tech Stack
 
-* **Runtime:** Node.js & Express.js
-* **Database:** Supabase (PostgreSQL + pgvector)
-* **AI Models:** * **Gemini 1.5 Flash:** Syllabus generation & Assessment
-    * **Hugging Face:** Embeddings (`all-MiniLM-L6-v2`) & Chat (`gemma-2-2b-it`)
-* **Compiler:** Piston API (Sandboxed code execution)
-* **Auth:** Supabase Auth (JWT)
+* **Runtime**: Node.js (v22+)
+* **Framework**: Fastify (High-performance web framework)
+* **Database**: Supabase + PostgreSQL (`pgvector` for vector similarity search)
+* **AI Inference**: Hugging Face Inference API
+* **Embeddings**: `sentence-transformers/all-MiniLM-L6-v2` (384-dim)
+* **LLM**: `meta-llama/Llama-3.1-8B-Instruct`
+
+
+* **Text Processing**: LangChain (`RecursiveCharacterTextSplitter`) & `pdf-parse`
 
 ---
 
-## 🚀 Setup Instructions
+## 📁 Project Structure
 
-### 1. Installation
-```bash
-git clone <your-repo-url>
-cd backend
-npm install
+```text
+src/
+├── controllers/
+│   ├── aiController.js        # Hugging Face logic (Embeddings & Chat)
+│   ├── textExtractor.js       # PDF parsing and text chunking
+│   ├── documentController.js   # Document metadata management
+│   └── syllabusController.js   # AI Curriculum design logic
+├── server.js                  # Fastify server and API routes
+└── .env                       # Environment variables (not tracked)
 
 ```
 
-### 2. Environment Variables (`.env`)
+---
+
+## ⚙️ Setup Instructions
+
+### 1. Database Configuration
+
+Run the following script in your **Supabase SQL Editor** to establish the schema:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
+
+CREATE TABLE documents (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  filename text NOT NULL,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE document_sections (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  document_id bigint REFERENCES documents(id) ON DELETE CASCADE,
+  content text NOT NULL,
+  embedding extensions.vector(384)
+);
+
+CREATE TABLE syllabi (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  document_id bigint REFERENCES documents(id) ON DELETE CASCADE,
+  syllabus_data jsonb NOT NULL,
+  duration text,
+  level text
+);
+
+```
+
+### 2. Environment Variables
 
 Create a `.env` file in the root directory:
 
-```env
-PORT=5000
-# AI Keys
-HF_API_KEY="hf_..."
-GEMINI_API_KEY="AIza..."
-
-# Supabase Configuration
-SUPABASE_URL="[https://your-project.supabase.co](https://your-project.supabase.co)"
-# ⚠️ IMPORTANT: Use the SERVICE ROLE Key (starts with ey...), NOT the Anon Key
-SUPABASE_SERVICE_KEY="ey..."
+```bash
+PORT=3000
+HF_ACCESS_TOKEN=your_huggingface_token
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_KEY=your_supabase_anon_key
 
 ```
 
-### 3. Database Setup (Supabase SQL)
-
-Run the following SQL in your Supabase SQL Editor to enable Vector Search:
-
-```sql
--- Enable Vector Extension
-create extension if not exists vector;
-
--- Documents Table
-create table documents (
-  id bigserial primary key,
-  filename text not null,
-  user_id uuid references auth.users(id) not null,
-  upload_date timestamp with time zone default timezone('utc'::text, now())
-);
-
--- Chunks Table (Vectors)
-create table document_chunks (
-  id bigserial primary key,
-  document_id bigint references documents(id) on delete cascade,
-  content text,
-  embedding vector(384)
-);
-
--- Search Function (Security: Filters by User ID)
-create or replace function match_documents (
-  query_embedding vector(384),
-  match_threshold float,
-  match_count int,
-  filter_user_id uuid
-)
-returns table (
-  id bigint,
-  content text,
-  similarity float
-)
-language plpgsql
-as $$
-begin
-  return query
-  select
-    document_chunks.id,
-    document_chunks.content,
-    1 - (document_chunks.embedding <=> query_embedding) as similarity
-  from document_chunks
-  join documents on documents.id = document_chunks.document_id
-  where 1 - (document_chunks.embedding <=> query_embedding) > match_threshold
-  and documents.user_id = filter_user_id
-  order by document_chunks.embedding <=> query_embedding
-  limit match_count;
-end;
-$$;
-
--- Syllabi Table (For AI-generated course syllabi from PDFs)
-create table if not exists public.syllabi (
-  id uuid default gen_random_uuid() primary key,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  document_id bigint references public.documents(id) on delete cascade,
-  title text not null,
-  content jsonb not null,
-  source_pdf text,
-  created_at timestamp with time zone default timezone('utc'::text, now()),
-  updated_at timestamp with time zone default timezone('utc'::text, now())
-);
-
--- Indexes for performance
-create index if not exists idx_syllabi_user_id on public.syllabi(user_id);
-create index if not exists idx_syllabi_document_id on public.syllabi(document_id);
-
--- Enable RLS (Row Level Security)
-alter table public.syllabi enable row level security;
-
--- RLS Policies
-create policy "Users can view their own syllabi"
-  on public.syllabi for select
-  using (auth.uid() = user_id);
-
-create policy "Users can create their own syllabi"
-  on public.syllabi for insert
-  with check (auth.uid() = user_id);
-
-create policy "Users can update their own syllabi"
-  on public.syllabi for update
-  using (auth.uid() = user_id);
-
-create policy "Users can delete their own syllabi"
-  on public.syllabi for delete
-  using (auth.uid() = user_id);
-
-```
-
-### 4. Run Server
+### 3. Installation
 
 ```bash
-node index.js
-# Server runs on http://localhost:5000
+npm install
+node src/server.js
 
 ```
 
 ---
 
-## 📡 API Documentation
+## 📡 API Endpoints
 
-**Global Header:**
-Except for Auth & Compiler routes, add this header to requests:
-`Authorization: Bearer <YOUR_ACCESS_TOKEN>`
+### **Ingestion**
 
-### 🔐 1. Authentication
+* **POST** `/ingest`: Upload a PDF file.
+* *Body*: `multipart/form-data` with `file`.
 
-**POST** `/api/auth/register`
 
-```json
-{
-  "email": "user@example.com",
-  "password": "securePassword123"
-}
 
-```
+### **Learning & Chat**
 
-**POST** `/api/auth/login`
+* **POST** `/chat`: Query a specific document.
+* *Body*: `{"pdf_id": 5, "question": "...", "level": "Beginner"}`
 
-```json
-{
-  "email": "user@example.com",
-  "password": "securePassword123"
-}
-// Returns: { "token": "ey...", "user": {...} }
 
-```
+* **POST** `/generate-syllabus`: Generate a JSON course plan.
+* *Body*: `{"pdf_id": 5, "duration": "4 weeks", "level": "Intermediate"}`
 
-### 🧠 2. AI Learning Engine
 
-**POST** `/api/ai/assess-level`
-*Determines if user is Beginner, Intermediate, or Advanced.*
 
-```json
-{
-  "topic": "ReactJS",
-  "quizAnswers": [
-    { "question": "What is State?", "userAnswer": "Internal storage" },
-    { "question": "Explain useEffect", "userAnswer": "It handles side effects" }
-  ]
-}
+### **Management**
 
-```
+* **GET** `/list-pdfs`: List all uploaded document IDs and names.
+* **GET** `/my-courses`: List all generated syllabi and their metadata.
 
-**POST** `/api/ai/generate-syllabus`
-*Creates a custom learning path.*
+---
 
-```json
-{
-  "topics": "Node.js Architecture",
-  "level": "Intermediate",
-  "duration": "2 weeks"
-}
+## 🧠 Core Logic: Adaptive Learning
 
-```
+The system uses a specialized system prompt to adjust the "VectorBot" personality. Depending on the `level` parameter, the AI switches between:
 
-**POST** `/api/ai/generate-coding-questions`
-*Generates LeetCode-style problems.*
-
-```json
-{
-  "topic": "Dynamic Programming",
-  "difficulty": "Hard",
-  "count": 1
-}
-
-```
-
-**POST** `/api/ai/code-comments`
-*AI Mentor gives hints on broken code.*
-
-```json
-{
-  "code": "function sum(a,b) { return a * b; } // Bug here"
-}
-
-```
-
-### 📚 3. PDF & RAG (Study Material)
-
-**POST** `/api/pdf/upload-pdf`
-
-* **Body Type:** `form-data`
-* **Key:** `pdf` (File)
-
-**POST** `/api/pdf/upload-pdf-and-generate-syllabus`
-*Upload PDF and auto-generate a structured learning syllabus.*
-
-* **Body Type:** `form-data`
-* **Key:** `pdf` (File)
-* **Returns:** Document info + Generated syllabus JSON + Syllabus ID
-
-```json
-{
-  "message": "PDF Uploaded and Syllabus Generated successfully!",
-  "document": {
-    "id": 1,
-    "filename": "learning-material.pdf",
-    "chunks": 15
-  },
-  "syllabus": {
-    "syllabus_title": "Course Name",
-    "target_audience": "Intermediate",
-    "prerequisites": ["Basic JavaScript"],
-    "weeks": [...]
-  },
-  "syllabusId": "uuid-here"
-}
-```
-
-**POST** `/api/pdf/chat`
-*Ask questions about the uploaded document.*
-
-```json
-{
-  "question": "Summarize the chapter on Redux from my file."
-}
-
-```
-
-### ⚡ 4. Code Compiler
-
-**POST** `/api/compiler/run`
-*Executes code safely.*
-
-```json
-{
-  "language": "python",
-  "code": "print('Hello World')",
-  "input": ""
-}
-
-```
-
+* **Beginner**: Analogies and jargon-free explanations.
+* **Advanced**: Precise, technical, and high-density information.

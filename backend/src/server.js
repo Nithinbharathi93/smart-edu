@@ -20,6 +20,7 @@ import {
   generateSolution,
   provideGuidance,
 } from "./controllers/tutorController.js";
+import { generateAdaptiveTest, calculateLevel } from "./controllers/assessmentController.js";
 
 dotenv.config();
 
@@ -438,6 +439,36 @@ fastify.delete("/delete-syllabus/:id", async (req, reply) => {
     .eq("user_id", user.id); // Security: User can only delete their own syllabus
   if (error) return reply.code(500).send({ error: error.message });
   return { success: true, message: "Syllabus and associated problems deleted." };
+});
+
+fastify.get("/assessment/questions", async (req, reply) => {
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+  const { data: profile } = await supabase.from("profiles").select("persona").eq("id", user.id).single();
+  if (['casual', 'seasoned_dev'].includes(profile?.persona)) {
+    return reply.code(403).send({ error: "Assessment not required for your persona." });
+  }
+  const questions = await generateAdaptiveTest();
+  return questions;
+});
+
+fastify.post("/assessment/submit", async (req, reply) => {
+  const { score, answers } = req.body; // Score out of 15
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+  const assessment = calculateLevel(score);
+  await supabase.from("profiles").update({
+    current_level: assessment.level,
+    level_name: assessment.name,
+    last_assessed_at: new Date()
+  }).eq("id", user.id);
+  await supabase.from("proficiency_tests").insert({
+    user_id: user.id,
+    score: score,
+    assigned_level: assessment.level,
+    answers_json: answers
+  });
+  return { message: `Assessment complete! You are a ${assessment.name}`, ...assessment };
 });
 
 const start = async () => {
