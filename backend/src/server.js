@@ -21,6 +21,7 @@ import {
   provideGuidance,
 } from "./controllers/tutorController.js";
 import { generateAdaptiveTest, calculateLevel } from "./controllers/assessmentController.js";
+import { upsertProfile, getProfile } from "./controllers/profileController.js";
 
 dotenv.config();
 
@@ -211,13 +212,17 @@ fastify.post("/generate-syllabus", async (req, reply) => {
     duration,
     level
   );
+  const title = syllabusJson.syllabus_title || `Analysis of ${filename}`;
+
   await supabase.from("syllabi").insert({
     document_id: pdf_id,
     user_id: user.id,
+    syllabus_title: title, // SAVING TO NEW COLUMN
     syllabus_data: syllabusJson,
     duration: duration,
     level: level,
   });
+
   return { ...syllabusJson, cached: false };
 });
 
@@ -232,19 +237,28 @@ fastify.get("/list-pdfs", async (req, reply) => {
 });
 
 fastify.get("/my-courses", async (req, reply) => {
-  const user = await authenticateUser(req, reply); // Added Auth
+  // 1. Authenticate the user
+  const user = await authenticateUser(req, reply); 
   if (!user) return;
+
+  // 2. Fetch data using the new syllabus_title column
   const { data, error } = await supabase
     .from("syllabi")
     .select(`
       id,
+      syllabus_title,
       level,
       duration,
-      syllabus_data->syllabus_title as title,
+      created_at,
       documents ( filename )
     `)
-    .eq("user_id", user.id); // Filter by user!
-  if (error) return reply.code(500).send({ error: error.message });
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false }); // Show newest courses first
+
+  if (error) {
+    return reply.code(500).send({ error: error.message });
+  }
+
   return data;
 });
 
@@ -252,6 +266,8 @@ fastify.post("/generate-problem", async (req, reply) => {
   const { syllabus_id, week_number, concept, level } = req.body;
   const user = await authenticateUser(req, reply);
   if (!user) return;
+
+  // 1. Check if problem already exists (Cache check)
   const { data: existingProblem } = await supabase
     .from("coding_problems")
     .select("*")
@@ -259,33 +275,50 @@ fastify.post("/generate-problem", async (req, reply) => {
     .eq("week_number", week_number)
     .eq("concept", concept)
     .single();
+
   if (existingProblem) return { ...existingProblem, cached: true };
-  const { data: syllabus } = await supabase
+
+  // 2. Fetch Syllabus to get the document_id (if any)
+  const { data: syllabus, error: sylError } = await supabase
     .from("syllabi")
     .select("document_id, level")
     .eq("id", syllabus_id)
     .single();
+
+  if (sylError || !syllabus) return reply.code(404).send({ error: "Syllabus not found" });
+
   let context = [];
-  if (syllabus?.document_id) {
+  
+  // 3. Logic: If document exists, get chunks. If not, it's AI Topic based.
+  if (syllabus.document_id) {
     const { data: sections } = await supabase
       .from("document_sections")
       .select("content")
       .eq("document_id", syllabus.document_id)
-      .limit(10);
-    context = sections.map((s) => s.content);
+      .limit(8); // Optimization: 8 chunks is usually enough context
+    
+    if (sections) context = sections.map((s) => s.content);
   }
+
+  // 4. Generate Problem
   const problemJson = await generateCodingProblem(
     context,
     level || syllabus.level,
     week_number,
     concept
   );
+
+  if (problemJson.error) {
+    return reply.code(500).send({ error: "AI generation failed", details: problemJson.raw });
+  }
+
+  // 5. Save to Supabase
   const { data: savedProblem, error } = await supabase
     .from("coding_problems")
     .insert({
       user_id: user.id,
       syllabus_id: syllabus_id,
-      document_id: syllabus.document_id,
+      document_id: syllabus.document_id, // Will be null for topic-based
       week_number: week_number,
       concept: concept,
       title: problemJson.title,
@@ -297,7 +330,9 @@ fastify.post("/generate-problem", async (req, reply) => {
     })
     .select()
     .single();
+
   if (error) return reply.code(500).send({ error: error.message });
+
   return { ...savedProblem, cached: false };
 });
 
@@ -319,24 +354,31 @@ fastify.post("/generate-topic-syllabus", async (req, reply) => {
   const { topic, duration, level } = req.body;
   const user = await authenticateUser(req, reply);
   if (!user) return;
+
   if (!topic || !duration || !level) {
-    return reply.code(400).send({ error: "Missing topic, duration, or level" });
+    return reply.code(400).send({ error: "Missing parameters" });
   }
+
   const syllabusJson = await generateTopicSyllabus(topic, duration, level);
+
+  // Extract the title from the AI response
+  const title = syllabusJson.syllabus_title || `Course on ${topic}`;
+
   const { data: savedSyllabus, error: insertError } = await supabase
     .from("syllabi")
     .insert({
       user_id: user.id,
       document_id: null,
+      syllabus_title: title, // SAVING TO NEW COLUMN
       syllabus_data: syllabusJson,
       duration: duration,
       level: level,
     })
     .select()
     .single();
-  if (insertError) {
-    console.error("Syllabus Save Error:", insertError.message);
-  }
+
+  if (insertError) return reply.code(500).send({ error: insertError.message });
+
   return {
     syllabus: syllabusJson,
     id: savedSyllabus?.id,
@@ -470,6 +512,37 @@ fastify.post("/assessment/submit", async (req, reply) => {
   });
   return { message: `Assessment complete! You are a ${assessment.name}`, ...assessment };
 });
+
+fastify.get("/profile/me", async (req, reply) => {
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+
+  try {
+    const profile = await getProfile(user.id);
+    return profile || {}; // Return empty object if no profile yet
+  } catch (error) {
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
+fastify.post("/profile/setup", async (req, reply) => {
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+
+  try {
+    // SECURITY: We spread req.body but FORCE the id to be user.id from the token
+    const profilePayload = {
+      ...req.body,
+      id: user.id 
+    };
+
+    const updatedProfile = await upsertProfile(user.id, profilePayload);
+    return { message: "Profile updated successfully", profile: updatedProfile };
+  } catch (error) {
+    return reply.code(400).send({ error: error.message });
+  }
+});
+
 
 const start = async () => {
   try {

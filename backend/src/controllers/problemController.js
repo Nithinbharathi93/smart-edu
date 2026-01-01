@@ -6,53 +6,65 @@ dotenv.config();
 const hf = new InferenceClient(process.env.HF_ACCESS_TOKEN);
 
 export async function generateCodingProblem(contextChunks, level, week, concept) {
-  const isBookBased = contextChunks && contextChunks.length > 0;
+  // Logic to determine if we use PDF data or general AI knowledge
+  const hasContext = contextChunks && contextChunks.length > 0;
   
   const systemPrompt = `
-You are a Technical Interview Engineer.
+You are a Senior Technical Interview Engineer.
 Task: Create EXACTLY ONE LeetCode-style coding problem.
 
 CRITICAL INSTRUCTIONS:
 1. Level: ${level}
 2. Focus: Week ${week} - ${concept}
-3. Type: ${isBookBased ? "Base this on the provided technical document context." : "Use your general knowledge of the topic."}
-4. OUTPUT: Provide ONLY a valid JSON object. No prose or markdown.
+3. Generation Mode: ${
+    hasContext 
+    ? "BASE the problem on the provided technical document context to ensure alignment with the specific book material." 
+    : "Use your general knowledge of the topic as this is a topic-based AI course."
+  }
+4. OUTPUT: Provide ONLY a valid JSON object. No prose or markdown tags like \`\`\`json.
 
 JSON STRUCTURE:
 {
-  "id": "generated_uuid",
   "title": "Problem Title",
-  "description": "Full statement",
+  "description": "Clear statement of the problem",
   "difficulty": "${level}",
-  "topics": ["topic1"],
-  "constraints": ["Constraint 1"],
-  "examples": [{ "input": "...", "output": "...", "explanation": "..." }]
+  "topics": ["${concept}"],
+  "constraints": ["Constraint 1", "Constraint 2"],
+  "examples": [
+    { 
+      "input": "...", 
+      "output": "...", 
+      "explanation": "..." 
+    }
+  ]
 }
 `;
 
-  const contextBlock = isBookBased ? contextChunks.join("\n\n---\n\n") : "No specific document context. Use general expertise.";
+  const contextBlock = hasContext 
+    ? `CONTEXT FROM DOCUMENT:\n${contextChunks.join("\n---\n")}` 
+    : "MODE: Topic-based generation (No document context).";
 
   const response = await hf.chatCompletion({
     model: "meta-llama/Llama-3.1-8B-Instruct",
     messages: [
       { role: "system", content: systemPrompt },
-      { role: "user", content: `Generate a problem for ${concept} at a ${level} level.` }
+      { role: "user", content: `${contextBlock}\n\nGenerate a coding problem for the concept: ${concept}.` }
     ],
     max_tokens: 1000,
-    temperature: 0.2,
+    temperature: 0.3, // Slightly higher for more creative problems
   });
   
   let rawContent = response.choices[0].message.content.trim();
   
   // Robust JSON cleaning
-  const jsonMatch = rawContent.match(/\{[\s\S]*\}/); // Regex to find the first JSON object
+  const jsonMatch = rawContent.match(/\{[\s\S]*\}/); 
   const cleanJson = jsonMatch ? jsonMatch[0] : rawContent;
 
   try {
     const problem = JSON.parse(cleanJson);
     return { ...problem, id: uuidv4() };
   } catch (e) {
-    console.error("AI Output failed to parse. Content:", rawContent);
+    console.error("AI Output failed to parse:", rawContent);
     return { error: "JSON_PARSE_ERROR", raw: rawContent };
   }
 }

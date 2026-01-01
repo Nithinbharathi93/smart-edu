@@ -30,12 +30,11 @@ JSON SCHEMA:
   ]
 }
 `;
-
-  const response = await hf.chatCompletion({
+const response = await hf.chatCompletion({
     model: "meta-llama/Llama-3.1-8B-Instruct",
     messages: [
       { role: "system", content: systemPrompt },
-      { role: "user", content: `Generate a ${duration} syllabus for a ${level} student to learn about: ${topic}` }
+      { role: "user", content: `Generate a ${duration} syllabus for ${topic} at ${level} level.` }
     ],
     max_tokens: 1500,
     temperature: 0.4,
@@ -47,7 +46,6 @@ JSON SCHEMA:
   try {
     return JSON.parse(cleanJson);
   } catch (e) {
-    console.error("Topic Syllabus AI Error:", rawContent);
-    return { error: "Failed to generate structured syllabus", raw: rawContent };
+    return { error: "Failed to parse JSON", raw: rawContent };
   }
 }

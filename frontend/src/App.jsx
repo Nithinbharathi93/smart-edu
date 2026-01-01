@@ -1,34 +1,43 @@
 import './App.css'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import CreateCourse from './pages/CreateCourse';
-import CourseView from './pages/CourseView';
-import Practice from './pages/Practice';
-import Chat from './pages/Chat';
+import Landing from './pages/Landing.jsx';
+import Login from './pages/Auth/Login.jsx';
+import Register from './pages/Auth/Register.jsx';
+import DashboardLayout from './components/Layout/Dashboardlayout.jsx';
+import DashboardOverview from './pages/Dashboard/Overview.jsx';
+import SyllabusList from './pages/Dashboard/SyllabusList.jsx';
+import CreateSyllabus from './pages/Syllabus/CreateSyllabus.jsx';
+import SyllabusDetail from './pages/Syllabus/SyllabusDetail.jsx';
+import LevelBreaker from './pages/Assessment/LevelBreaker.jsx';
+import PracticeLab from './pages/Practice/PracticeLab.jsx';
+import ProfilePage from './pages/Dashboard/Profile.jsx';
 
-import { ThemeProvider } from './context/ThemeContext';
 
 function App() {
   return (
-    <ThemeProvider>
       <Router>
-        <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-200">
+        <div className="min-h-screen bg-gray-50 text-gray-900 transition-colors duration-200">
           <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/create-course" element={<CreateCourse />} />
-            <Route path="/course/:courseId" element={<CourseView />} />
-            <Route path="/practice/:courseId/:weekId/:lessonId" element={<Practice />} />
-            <Route path="/chat" element={<Chat />} />
-          </Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Protected Dashboard Routes */}
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<DashboardOverview />} /> {/* /dashboard */}
+            <Route path="syllabi" element={<SyllabusList />} /> {/* /dashboard/syllabi */}
+            <Route path="syllabi/create" element={<CreateSyllabus />} />
+            <Route path="syllabi/:id" element={<SyllabusDetail />} />
+            <Route path="assessment" element={<LevelBreaker />} />
+            <Route path="profile" element={<ProfilePage />} />
+          </Route>
+
+          {/* Full-screen Practice Mode (Maximizes screen real estate) */}
+          <Route path="/practice/:syllabusId/:week" element={<PracticeLab />} />
+        </Routes>
         </div>
       </Router>
-    </ThemeProvider>
   );
 }
 
