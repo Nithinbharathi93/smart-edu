@@ -102,8 +102,8 @@ const Register = () => {
         {/* Progress Stepper */}
         {step < 3 && (
           <div className="flex items-center gap-4 mb-8">
-            <div className={`h-2 flex-1 rounded-full transition-colors duration-500 ${step >= 1 ? 'bg-indigo-600' : 'bg-slate-100'}`} />
-            <div className={`h-2 flex-1 rounded-full transition-colors duration-500 ${step === 2 ? 'bg-indigo-600' : 'bg-slate-100'}`} />
+            <div className={`h-2 flex-1 rounded-full transition-colors duration-500 ${step >= 1 ? 'bg-green-600' : 'bg-slate-100'}`} />
+            <div className={`h-2 flex-1 rounded-full transition-colors duration-500 ${step === 2 ? 'bg-green-600' : 'bg-slate-100'}`} />
           </div>
         )}
 
@@ -116,14 +116,14 @@ const Register = () => {
 
         {step === 1 && (
           <div className="max-w-md mx-auto">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Create Account</h2>
+            <h2 className="text-3xl font-bold text-black mb-2">Create Account</h2>
             <p className="text-slate-500 mb-8">Join thousands of developers leveling up.</p>
             <form className="space-y-4" onSubmit={handleInitialSignup}>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
                 <input 
                   type="email" 
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-green-50/500"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   required 
@@ -133,7 +133,7 @@ const Register = () => {
                 <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
                 <input 
                   type="password" 
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-green-50/500"
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
                   required 
@@ -146,7 +146,7 @@ const Register = () => {
 
         {step === 2 && (
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 mb-2 text-center">Select your Persona</h2>
+            <h2 className="text-3xl font-bold text-black mb-2 text-center">Select your Persona</h2>
             <p className="text-slate-500 mb-8 text-center">We'll tailor your syllabus based on your background.</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -156,14 +156,14 @@ const Register = () => {
                   onClick={() => setFormData({...formData, persona: p.id})}
                   className={`p-4 rounded-xl border-2 text-left transition-all ${
                     formData.persona === p.id 
-                      ? 'border-indigo-600 bg-indigo-50 ring-4 ring-indigo-50' 
+                      ? 'border-green-600 bg-green-50/50 ring-4 ring-green-50/50' 
                       : 'border-slate-100 hover:border-slate-200 bg-white'
                   }`}
                 >
-                  <div className={`${formData.persona === p.id ? 'text-indigo-600' : 'text-slate-400'} mb-2`}>
+                  <div className={`${formData.persona === p.id ? 'text-green-600' : 'text-green-600/70'} mb-2`}>
                     {p.icon}
                   </div>
-                  <h3 className="font-bold text-slate-800">{p.title}</h3>
+                  <h3 className="font-bold text-black">{p.title}</h3>
                   <p className="text-xs text-slate-500">{p.desc}</p>
                 </button>
               ))}
@@ -180,10 +180,10 @@ const Register = () => {
 
         {step === 3 && (
           <div className="text-center py-8">
-            <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 bg-indigo-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <Mail size={40} />
             </div>
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Check your email</h2>
+            <h2 className="text-3xl font-bold text-black mb-2">Check your email</h2>
             <p className="text-slate-500 mb-8">
               We've sent a verification link to <b>{formData.email}</b>. 
               Please verify your email to access your dashboard.

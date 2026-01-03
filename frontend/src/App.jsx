@@ -11,6 +11,8 @@ import SyllabusDetail from './pages/Syllabus/SyllabusDetail.jsx';
 import LevelBreaker from './pages/Assessment/LevelBreaker.jsx';
 import PracticeLab from './pages/Practice/PracticeLab.jsx';
 import ProfilePage from './pages/Dashboard/Profile.jsx';
+import SettingsPage from './pages/Dashboard/Settings.jsx';
+import ProblemList from './pages/Practice/ProblemList.jsx';
 
 
 function App() {
@@ -31,10 +33,12 @@ function App() {
             <Route path="syllabi/:id" element={<SyllabusDetail />} />
             <Route path="assessment" element={<LevelBreaker />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
 
           {/* Full-screen Practice Mode (Maximizes screen real estate) */}
-          <Route path="/practice/:syllabusId/:week" element={<PracticeLab />} />
+          <Route path="/practice/:syllabusId/:week/:problemId?" element={<PracticeLab />} />
+          <Route path="/problems" element={<ProblemList />} />
         </Routes>
         </div>
       </Router>

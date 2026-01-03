@@ -13,15 +13,15 @@ import { getEmbedding, getChatResponse } from "./controllers/aiController.js";
 import { listDocuments } from "./controllers/documentController.js";
 import { generateSyllabus } from "./controllers/syllabusController.js";
 import { signUp, signIn } from "./controllers/authController.js";
-import { generateCodingProblem } from "./controllers/problemController.js";
+import { generateCodingProblem, getProblemById } from "./controllers/problemController.js";
 import { generateTopicSyllabus } from "./controllers/topicSyllabusController.js";
-import { executeCode } from "./controllers/compilerController.js";
+import { executeCode, wrapCodeWithTests } from "./controllers/compilerController.js";
 import {
   generateSolution,
   provideGuidance,
 } from "./controllers/tutorController.js";
-import { generateAdaptiveTest, calculateLevel } from "./controllers/assessmentController.js";
-import { upsertProfile, getProfile } from "./controllers/profileController.js";
+import { generateAdaptiveTest, calculateWeightedLevel } from "./controllers/assessmentController.js";
+import { upsertProfile, getProfile, getProfileSettings, updateProfileSettings } from "./controllers/profileController.js";
 
 dotenv.config();
 
@@ -34,10 +34,18 @@ const fastify = Fastify({
   logger: true,
 });
 
-await fastify.register(cors, { origin: "*" });
+// await fastify.register(cors, { origin: "*" });
 await fastify.register(multipart, {
   limits: { fileSize: 10 * 1024 * 1024 },
 });
+
+await fastify.register(cors, {
+  origin: "http://localhost:5173", // Your frontend URL
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // Add DELETE here
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+});
+
 
 const authenticateUser = async (req, reply) => {
   const token = req.headers.authorization?.split(" ")[1];
@@ -264,76 +272,105 @@ fastify.get("/my-courses", async (req, reply) => {
 
 fastify.post("/generate-problem", async (req, reply) => {
   const { syllabus_id, week_number, concept, level } = req.body;
+  
+  // 1. Authenticate User
   const user = await authenticateUser(req, reply);
   if (!user) return;
 
-  // 1. Check if problem already exists (Cache check)
-  const { data: existingProblem } = await supabase
-    .from("coding_problems")
-    .select("*")
-    .eq("syllabus_id", syllabus_id)
-    .eq("week_number", week_number)
-    .eq("concept", concept)
-    .single();
+  try {
+    // 2. Fetch User Preferences (Used for language/persona context)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("default_language, persona")
+      .eq("id", user.id)
+      .single();
 
-  if (existingProblem) return { ...existingProblem, cached: true };
+    // 3. Cache Check (Avoid re-generating if it exists)
+    const { data: existingProblem } = await supabase
+      .from("coding_problems")
+      .select("*")
+      .eq("syllabus_id", syllabus_id)
+      .eq("week_number", week_number)
+      .eq("concept", concept)
+      .single();
 
-  // 2. Fetch Syllabus to get the document_id (if any)
-  const { data: syllabus, error: sylError } = await supabase
-    .from("syllabi")
-    .select("document_id, level")
-    .eq("id", syllabus_id)
-    .single();
+    if (existingProblem) return { ...existingProblem, cached: true };
 
-  if (sylError || !syllabus) return reply.code(404).send({ error: "Syllabus not found" });
+    // 4. Get Syllabus & Document Context
+    const { data: syllabus } = await supabase
+      .from("syllabi")
+      .select("document_id, level")
+      .eq("id", syllabus_id)
+      .single();
 
-  let context = [];
-  
-  // 3. Logic: If document exists, get chunks. If not, it's AI Topic based.
-  if (syllabus.document_id) {
-    const { data: sections } = await supabase
-      .from("document_sections")
-      .select("content")
-      .eq("document_id", syllabus.document_id)
-      .limit(8); // Optimization: 8 chunks is usually enough context
-    
-    if (sections) context = sections.map((s) => s.content);
+    if (!syllabus) return reply.code(404).send({ error: "Syllabus not found" });
+
+    let context = [];
+    if (syllabus.document_id) {
+      const { data: sections } = await supabase
+        .from("document_sections")
+        .select("content")
+        .eq("document_id", syllabus.document_id)
+        .limit(8);
+      if (sections) context = sections.map((s) => s.content);
+    }
+
+    // 5. Generate with User Prefs (Triggers the Repair Loop internally)
+    const problemJson = await generateCodingProblem(
+      context,
+      level || syllabus.level,
+      week_number,
+      concept,
+      profile
+    );
+
+    // 6. Handle Critical Failures (If even the Repair AI failed)
+    if (problemJson.error) {
+      console.error("AI Generation & Repair both failed:", problemJson.details);
+      return reply.code(422).send({ 
+        error: "Problem Generation Failed", 
+        message: "The AI was unable to produce a valid structure after multiple attempts.",
+        details: problemJson.details 
+      });
+    }
+
+    // 7. Final Validation: Ensure required fields exist before saving
+    if (!problemJson.title || !problemJson.description) {
+      return reply.code(500).send({ error: "Incomplete data generated by AI" });
+    }
+
+    // 8. Save to Supabase
+    const { data: savedProblem, error: saveError } = await supabase
+      .from("coding_problems")
+      .insert({
+        user_id: user.id,
+        syllabus_id,
+        document_id: syllabus.document_id,
+        week_number,
+        concept,
+        title: problemJson.title,
+        description: problemJson.description,
+        difficulty: problemJson.difficulty || level || syllabus.level,
+        topics: problemJson.topics || [concept],
+        constraints: problemJson.constraints || [],
+        examples: problemJson.examples || [],
+        hidden_test_cases: problemJson.hidden_test_cases || [],
+        starter_code: problemJson.starter_code || ""
+      })
+      .select()
+      .single();
+
+    if (saveError) {
+      console.error("Database Save Error:", saveError.message);
+      return reply.code(500).send({ error: saveError.message });
+    }
+
+    return { ...savedProblem, cached: false };
+
+  } catch (err) {
+    console.error("Route Crash:", err.message);
+    return reply.code(500).send({ error: "Internal Server Error during generation" });
   }
-
-  // 4. Generate Problem
-  const problemJson = await generateCodingProblem(
-    context,
-    level || syllabus.level,
-    week_number,
-    concept
-  );
-
-  if (problemJson.error) {
-    return reply.code(500).send({ error: "AI generation failed", details: problemJson.raw });
-  }
-
-  // 5. Save to Supabase
-  const { data: savedProblem, error } = await supabase
-    .from("coding_problems")
-    .insert({
-      user_id: user.id,
-      syllabus_id: syllabus_id,
-      document_id: syllabus.document_id, // Will be null for topic-based
-      week_number: week_number,
-      concept: concept,
-      title: problemJson.title,
-      description: problemJson.description,
-      difficulty: problemJson.difficulty,
-      topics: problemJson.topics,
-      constraints: problemJson.constraints,
-      examples: problemJson.examples,
-    })
-    .select()
-    .single();
-
-  if (error) return reply.code(500).send({ error: error.message });
-
-  return { ...savedProblem, cached: false };
 });
 
 fastify.get("/syllabus/:id/problems", async (req, reply) => {
@@ -427,33 +464,196 @@ fastify.post("/compile", async (req, reply) => {
   return result;
 });
 
-fastify.post("/problem/solution", async (req, reply) => {
-  const { problem_details, language } = req.body;
+fastify.post("/compile/submit", async (req, reply) => {
+  const { problem_id, language, source_code } = req.body;
   const user = await authenticateUser(req, reply);
-  if (!user || !problem_details)
-    return reply.code(400).send({ error: "Missing data" });
+  if (!user) return;
+
+  // 1. Fetch the problem data
+  const { data: problem, error: dbError } = await supabase
+    .from("coding_problems")
+    .select("hidden_test_cases, starter_code")
+    .eq("id", problem_id)
+    .single();
+
+  if (dbError || !problem) {
+    return reply.code(404).send({ error: "Problem not found in database." });
+  }
+
+  // 2. SAFE Function Name Detection
+  // Using (problem.starter_code || "") ensures we never call .match on null
+  const starter = problem.starter_code || "";
+  const nameMatch = starter.match(/(?:def|function)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/);
+  
+  // Fallback to 'solution' if the regex finds nothing
+  const functionName = nameMatch ? nameMatch[1] : "solution";
+
+  // 3. Ensure test cases exist and are an array
+  const testCases = Array.isArray(problem.hidden_test_cases) 
+    ? problem.hidden_test_cases 
+    : [];
+
+  if (testCases.length === 0) {
+    return reply.code(400).send({ error: "No test cases found for this problem." });
+  }
+
+  // 4. Wrap and Execute
+  const wrappedCode = wrapCodeWithTests(language, source_code, testCases, functionName);
+  const result = await executeCode(language, "*", wrappedCode);
+
+  if (!result.success) {
+    return reply.code(500).send({ error: "Execution Error", details: result.error });
+  }
+
   try {
-    const solution = await generateSolution(problem_details, language);
-    return solution;
+    // 5. Parse the test runner's JSON output
+    const testResults = JSON.parse(result.stdout.trim());
+    const allPassed = testResults.every(r => r.passed);
+    
+    return {
+      success: allPassed,
+      passed_count: testResults.filter(r => r.passed).length,
+      total_cases: testResults.length,
+      results: testResults
+    };
   } catch (e) {
-    return reply.code(500).send({ error: "Failed to generate JSON solution" });
+    // If JSON.parse fails, it's likely a SyntaxError in the user's code 
+    // that the Piston runner caught as stdout/stderr
+    return reply.code(400).send({ 
+      error: "Runtime Error", 
+      details: result.stderr || result.stdout 
+    });
+  }
+});
+
+fastify.get("/problems", async (req, reply) => {
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+
+  const { syllabus_id } = req.query;
+
+  try {
+    let query = supabase
+      .from("coding_problems")
+      .select("id, syllabus_id, week_number, concept, title, difficulty, created_at")
+      .order("created_at", { ascending: false });
+
+    // Optional filter if user provides ?syllabus_id=X
+    if (syllabus_id) {
+      query = query.eq("syllabus_id", syllabus_id);
+    }
+
+    const { data: problems, error } = await query;
+
+    if (error) throw error;
+
+    return problems;
+  } catch (error) {
+    console.error("Fetch Problems Error:", error.message);
+    return reply.code(500).send({ error: "Failed to fetch problem list" });
+  }
+});
+
+fastify.delete("/problems/:id", async (req, reply) => {
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+
+  const { id } = req.params;
+
+  try {
+    const { error, count } = await supabase
+      .from("coding_problems")
+      .delete()
+      .eq("id", id)
+      // Safety: Only let the user delete their own problems if your logic requires it,
+      // otherwise remove the .eq("user_id", user.id) line.
+      .select(); 
+
+    if (error) throw error;
+
+    return { 
+      message: "Problem deleted successfully", 
+      deleted_id: id 
+    };
+  } catch (error) {
+    console.error("Delete Problem Error:", error.message);
+    return reply.code(500).send({ error: "Failed to delete problem" });
+  }
+});
+
+fastify.post("/problem/solution", async (req, reply) => {
+  const { problem_id } = req.body;
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+
+  try {
+    // 1. Fetch Problem Details AND check for existing solution
+    const { data: problem, error: probError } = await supabase
+      .from("coding_problems")
+      .select("title, description, solution_data")
+      .eq("id", problem_id)
+      .single();
+
+    if (probError || !problem) return reply.code(404).send({ error: "Problem not found" });
+
+    // 2. CACHE CHECK: If solution already exists in DB, return it!
+    if (problem.solution_data) {
+      return {
+        problem_id,
+        cached: true,
+        ...problem.solution_data
+      };
+    }
+
+    // 3. Fetch User's Preferred Language for the generation
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("default_language")
+      .eq("id", user.id)
+      .single();
+
+    const language = profile?.default_language || "javascript";
+
+    // 4. Generate Solution via AI
+    const solution = await generateSolution(problem, language);
+
+    // 5. SAVE TO DB: Update the problem record with the new solution
+    const { error: updateError } = await supabase
+      .from("coding_problems")
+      .update({ solution_data: { language, ...solution } })
+      .eq("id", problem_id);
+
+    if (updateError) console.error("Failed to cache solution:", updateError.message);
+
+    return {
+      problem_id,
+      language,
+      cached: false,
+      ...solution
+    };
+
+  } catch (error) {
+    console.error("Solution Generation Error:", error.message);
+    return reply.code(500).send({ error: "Failed to generate solution" });
   }
 });
 
 fastify.post("/problem/guide", async (req, reply) => {
   const { problem_details, user_query, user_code } = req.body;
   const user = await authenticateUser(req, reply);
-  if (!user || !problem_details)
-    return reply.code(400).send({ error: "Missing data" });
+  if (!user || !problem_details) return reply.code(400).send({ error: "Missing data" });
+
   try {
+    // We pass user.id so the controller can fetch their specific Socratic level
     const hint = await provideGuidance(
+      user.id, 
       problem_details,
       user_query,
       user_code || "none"
     );
     return hint;
   } catch (e) {
-    return reply.code(500).send({ error: "Failed to generate JSON guidance" });
+    return reply.code(500).send({ error: "Failed to generate guidance" });
   }
 });
 
@@ -495,22 +695,49 @@ fastify.get("/assessment/questions", async (req, reply) => {
 });
 
 fastify.post("/assessment/submit", async (req, reply) => {
-  const { score, answers } = req.body; // Score out of 15
+  const { answers } = req.body; 
   const user = await authenticateUser(req, reply);
   if (!user) return;
-  const assessment = calculateLevel(score);
-  await supabase.from("profiles").update({
-    current_level: assessment.level,
-    level_name: assessment.name,
-    last_assessed_at: new Date()
-  }).eq("id", user.id);
-  await supabase.from("proficiency_tests").insert({
-    user_id: user.id,
-    score: score,
-    assigned_level: assessment.level,
-    answers_json: answers
-  });
-  return { message: `Assessment complete! You are a ${assessment.name}`, ...assessment };
+
+  // 1. Calculate Weighted Assessment
+  const assessment = calculateWeightedLevel(answers);
+  
+  // Clean up the precision for the response and database
+  const finalScore = Number(assessment.score.toFixed(2));
+
+  try {
+    // 2. Update the Profile Table
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({
+        current_level: assessment.level,
+        level_name: assessment.name,
+        last_assessed_at: new Date().toISOString() // Ensure ISO string format
+      })
+      .eq("id", user.id);
+
+    if (profileError) throw profileError;
+
+    // 3. Log the historical test
+    await supabase.from("proficiency_tests").insert({
+      user_id: user.id,
+      score: finalScore,
+      assigned_level: assessment.level,
+      answers_json: answers
+    });
+
+    // 4. Clean JSON response
+    return { 
+      message: `Assessment complete! You scored ${finalScore} and reached: ${assessment.name}`, 
+      level: assessment.level,
+      name: assessment.name,
+      score: finalScore 
+    };
+
+  } catch (err) {
+    console.error("Assessment Save Error:", err.message);
+    return reply.code(500).send({ error: "Failed to update profile rank." });
+  }
 });
 
 fastify.get("/profile/me", async (req, reply) => {
@@ -543,6 +770,117 @@ fastify.post("/profile/setup", async (req, reply) => {
   }
 });
 
+// server.js
+
+// GET current settings
+fastify.get("/profile/settings", async (req, reply) => {
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+
+  try {
+    const settings = await getProfileSettings(user.id);
+    return settings;
+  } catch (error) {
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
+// POST update settings
+fastify.post("/profile/settings", async (req, reply) => {
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+
+  const { default_language, socratic_level, editor_config } = req.body;
+
+  try {
+    const updatedSettings = await updateProfileSettings(user.id, {
+      default_language,
+      socratic_level,
+      editor_config
+    });
+    return { 
+      message: "Settings updated successfully", 
+      settings: updatedSettings 
+    };
+  } catch (error) {
+    return reply.code(400).send({ error: error.message });
+  }
+});
+
+fastify.get("/problems/:id", async (req, reply) => {
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+
+  const { id } = req.params;
+
+  try {
+    const { data: problem, error: dbError } = await supabase
+      .from("coding_problems")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (dbError) {
+      // LOG THIS TO YOUR TERMINAL TO SEE THE ACTUAL ISSUE
+      console.error("Supabase Error:", dbError);
+      return reply.code(400).send({ error: dbError.message });
+    }
+
+    if (!problem) {
+      return reply.code(404).send({ error: "Problem not found" });
+    }
+
+    return problem;
+  } catch (error) {
+    console.error("Server Crash:", error.message);
+    return reply.code(500).send({ error: "Internal Server Error" });
+  }
+});
+
+// server.js
+
+fastify.delete("/syllabus/:id", async (req, reply) => {
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+
+  const { id } = req.params;
+
+  try {
+    const { data: syllabus, error: fetchError } = await supabase
+      .from("syllabi")
+      .select("id")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !syllabus) {
+      return reply.code(404).send({ error: "Syllabus not found" });
+    }
+
+    const { error: deleteError } = await supabase
+      .from("syllabi")
+      .delete()
+      .eq("id", id);
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    return { 
+      message: "Syllabus and associated data deleted successfully", 
+      syllabus_id: id 
+    };
+  } catch (error) {
+    console.error("Delete Syllabus Error:", error.message);
+    
+    if (error.code === '23503') {
+      return reply.code(400).send({ 
+        error: "Cannot delete syllabus: It has active coding problems. Delete them first or enable CASCADE delete." 
+      });
+    }
+    
+    return reply.code(500).send({ error: "Failed to delete syllabus" });
+  }
+});
 
 const start = async () => {
   try {

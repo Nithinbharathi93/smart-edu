@@ -34,7 +34,7 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <div className="bg-white p-8 rounded-2xl shadow-xl shadow-slate-200 w-full max-w-md border border-slate-100">
-        <h2 className="text-3xl font-bold text-slate-900 mb-2">Welcome back</h2>
+        <h2 className="text-3xl font-bold text-black mb-2">Welcome back</h2>
         <p className="text-slate-500 mb-8">Continue your learning journey.</p>
         
         {error && (
@@ -48,7 +48,7 @@ const Login = () => {
             <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
             <input 
               type="email" 
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-green-50/500 outline-none transition-all"
               placeholder="name@example.com"
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -58,11 +58,11 @@ const Login = () => {
           <div>
             <div className="flex justify-between mb-1">
               <label className="text-sm font-medium text-slate-700">Password</label>
-              <button type="button" className="text-sm text-indigo-600 hover:underline">Forgot?</button>
+              <button type="button" className="text-sm text-green-600 hover:underline">Forgot?</button>
             </div>
             <input 
               type="password" 
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-green-50/500 outline-none transition-all"
               placeholder="••••••••"
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
@@ -76,7 +76,7 @@ const Login = () => {
         </form>
         
         <p className="text-center mt-6 text-slate-600 text-sm">
-          Don't have an account? <a href="/register" className="text-indigo-600 font-bold hover:underline">Register</a>
+          Don't have an account? <a href="/register" className="text-green-600 font-bold hover:underline">Register</a>
         </p>
       </div>
     </div>

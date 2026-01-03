@@ -27,7 +27,7 @@ const DashboardOverview = () => {
 
   if (loading) return (
     <div className="h-[80vh] flex items-center justify-center">
-      <Loader2 className="animate-spin text-indigo-600 w-12 h-12" />
+      <Loader2 className="animate-spin text-green-600 w-12 h-12" />
     </div>
   );
 
@@ -35,7 +35,7 @@ const DashboardOverview = () => {
     <div className="p-8 max-w-7xl mx-auto space-y-10">
       <div className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Your Workspace</h1>
+          <h1 className="text-4xl font-black text-black tracking-tight">Your Workspace</h1>
           <p className="text-slate-500 mt-1 text-lg">Track your AI-generated learning paths.</p>
         </div>
         <div className="flex gap-3">
@@ -49,7 +49,7 @@ const DashboardOverview = () => {
       </div>
 
       <section className="space-y-6">
-        <h2 className="text-2xl font-bold text-slate-800">Recent Courses</h2>
+        <h2 className="text-2xl font-bold text-black">Recent Courses</h2>
         {syllabi.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {syllabi.slice(0, 3).map((s) => (
@@ -74,7 +74,7 @@ const DashboardOverview = () => {
 const EmptyDashboard = ({ navigate }) => (
   <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-16 text-center">
     <Plus className="text-slate-300 mx-auto mb-4" size={32} />
-    <h3 className="text-xl font-bold text-slate-800">No courses yet</h3>
+    <h3 className="text-xl font-bold text-black">No courses yet</h3>
     <Button onClick={() => navigate('/dashboard/syllabi/create')} className="mt-6">
       Generate First Syllabus
     </Button>
