@@ -183,20 +183,38 @@ create table profiles (
 | **POST** | `/profile/settings` | Update language and Socratic preferences |
 
 ---
+## 📚 Learning Resources
 
-## 🎯 Roadmap
+- [Supabase Documentation](https://supabase.com/docs)
+- [React Docs](https://react.dev)
+- [Express Guide](https://expressjs.com/)
+- [Tailwind CSS](https://tailwindcss.com)
+- [Google Gemini API](https://ai.google.dev)
 
-[x] Fastify Backend Migration
-[x] AI Problem Repair Loop (Self-healing JSON)
-[x] Socratic Tutoring System
-[ ] Real-time Collaboration (WebSockets)
-[ ] Shared Learning Groups
-[ ] Achievement Badges
+---
+
+## 🤝 Contributing
+
+We love contributions! Here's how you can help:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 💬 Support
+
+Need help? We're here for you!
+- 📧 Email: nithinbharathi9325@gmail.com
+- 💭 GitHub Issues: [Report a Bug](https://github.com/Nithinbharathi93/smart-edu/issues)
+- 💡 Discussions: [Ask a Question](https://github.com/Nithinbharathi93/smart-edu/discussions)
 
 ---
 
 <div align="center">
-
+### Made with ❤️ for the learning community
 **[⭐ Star us on GitHub](https://github.com/Nithinbharathi93/smart-edu)** if you love Smart-Edu!
-
 </div>
