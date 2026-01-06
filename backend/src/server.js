@@ -58,7 +58,7 @@ const authenticateUser = async (req, reply) => {
 };
 
 fastify.get("/", async (req, reply) => {
-  return { "Developer's message": "Vaa arunachalam.. Nee varuvanu enakku theriyum" };
+  return { "Developer's message": "Vaa Arunachalaom.. Nee varuvanu enakku theriyum.." };
 });
 
 
