@@ -44,29 +44,41 @@ const initializeLab = async () => {
     setGenerating(true);
     setError(null);
 
-    // 1. Fetch Profile and Syllabus metadata first
+    // 1. Fetch Profile and Syllabus metadata simultaneously
     const [profileRes, syllabusRes] = await Promise.all([
       api.get('/profile/me'),
       api.get(`/get-syllabus/${syllabusId}`)
     ]);
     
     setProfile(profileRes.data);
-    const syllabusLevel = syllabusRes.data.level; // Use the actual level from DB
+    const syllabus = syllabusRes.data;
+    const syllabusLevel = syllabus.level;
+
+    // 2. Extract the correct concept from the syllabus data
+    // We find the week object that matches our current week number
+    const currentWeekData = syllabus.syllabus_data.weeks.find(
+      w => String(w.week_number) === String(week)
+    );
+    
+    // Use the first key concept of that week as the default
+    const targetConcept = currentWeekData?.key_concepts[0] || "Core Concepts";
 
     let problemData;
     
     if (problemId) {
-      // Fetch existing
+      // Fetch existing problem by ID
       const res = await api.get(`/problems/${problemId}`);
       problemData = res.data;
     } else {
-      // GENERATE NEW with guaranteed Syllabus Level
+      // GENERATE NEW with full context from the DB
       const payload = { 
         syllabus_id: Number(syllabusId), 
         week_number: Number(week),
-        concept: location.state?.concept || "Core Concepts",
-        level: syllabusLevel // <--- No more defaulting to "Beginner"
+        concept: targetConcept, 
+        level: syllabusLevel 
       };
+      
+      console.log("Generating with Payload:", payload);
       const res = await api.post('/generate-problem', payload);
       problemData = res.data;
     }
@@ -76,6 +88,7 @@ const initializeLab = async () => {
       setCode(problemData.starter_code || "");
     }
   } catch (err) {
+    console.error("Lab Init Error:", err);
     setError("Failed to load the challenge.");
   } finally {
     setGenerating(false);

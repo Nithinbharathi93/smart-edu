@@ -77,7 +77,7 @@ const ProblemList = () => {
       <div className="max-w-5xl mx-auto">
         
         <button 
-          onClick={() => navigate(`/syllabus/${syllabusContext}`)}
+          onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors mb-8 text-[10px] font-black uppercase tracking-widest"
         >
           <ArrowLeft size={14} /> Back to Learning Path
@@ -176,8 +176,8 @@ const ProblemList = () => {
               <AlertCircle size={40} className="text-black mb-4" />
               <h3 className="text-lg font-bold text-white mb-2">No attempts found</h3>
               <p className="text-slate-500 text-[11px] max-w-xs mb-8 uppercase tracking-widest">You haven't generated any problems for this unit yet.</p>
-              <Button onClick={() => navigate(`/practice/${syllabusContext}/${weekContext}`)}>
-                Generate First Challenge
+              <Button onClick={() => navigate(`/dashboard/syllabi/create`)}>
+                Create your first syllabus
               </Button>
             </div>
           )}
