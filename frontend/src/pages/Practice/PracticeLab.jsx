@@ -4,7 +4,7 @@ import api from '../../services/api';
 import Button from '../../components/ui/Button';
 import { 
   Play, Sparkles, HelpCircle, Loader2, ArrowLeft, 
-  AlertTriangle, ChevronRight, Flag, X, Brain, Clock, 
+  AlertTriangle, ChevronRight, Flag, X, Brain, Clock, AlertCircle,
   Send, CheckCircle2, Code
 } from 'lucide-react';
 

@@ -4,13 +4,28 @@ const hf = new InferenceClient(process.env.HF_ACCESS_TOKEN);
 
 export async function generateAdaptiveTest(topic = "General Programming & Computer Science") {
   const systemPrompt = `
-    Generate 15 Multiple Choice Questions for a proficiency test.
-    The questions must scale linearly from "Baby Level" to "Final Boss Level".
-    
-    JSON FORMAT ONLY:
-    [
-      { "q": "Question text", "options": ["A", "B", "C", "D"], "correct": 0, "difficulty": 1 }
-    ]
+    You are a Technical Assessment Architect.
+Task: Generate exactly 15 Multiple Choice Questions on "${topic}".
+
+STRICT PROGRESSION:
+- Questions 1-5: Beginner (Basic syntax, definitions)
+- Questions 6-10: Intermediate (Logic, debugging, loops)
+- Questions 11-15: Advanced (Architecture, optimization, "Final Boss" logic)
+
+JSON SCHEMA:
+[
+  { 
+    "q": "Question text", 
+    "options": ["Op1", "Op2", "Op3", "Op4"], 
+    "correct": 0, 
+    "difficulty": 1 
+  }
+]
+
+RULES:
+1. Return ONLY the JSON array.
+2. Ensure "correct" is the index (0-3) of the right option.
+3. Scale difficulty from 1 (Baby) to 10 (Boss).
   `;
   const response = await hf.chatCompletion({
     model: "meta-llama/Llama-3.1-8B-Instruct",

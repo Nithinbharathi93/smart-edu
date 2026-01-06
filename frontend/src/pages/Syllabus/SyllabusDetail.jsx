@@ -9,7 +9,7 @@ import {
   CheckCircle2, 
   Loader2, 
   History, 
-  ArrowLeft
+  ArrowLeft, MessageSquare
 } from 'lucide-react';
 
 const SyllabusDetail = () => {
@@ -93,9 +93,18 @@ const SyllabusDetail = () => {
       {/* Header Info */}
       <div className="bg-green-600 rounded-3xl p-8 text-white mb-10 relative overflow-hidden shadow-xl shadow-indigo-100">
         <div className="relative z-10">
-          <span className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em]">
-            {data.level} Module
-          </span>
+          <div className="flex justify-between items-start">
+            <span className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em]">
+              {data.level} Module
+            </span>
+            {/* Added Chat Button */}
+            <Button 
+              onClick={() => navigate(`/dashboard/chat?syllabus_id=${syllabusId}&level=${data.level}`)}
+              className="h-8 px-4 bg-black text-white border-none text-[10px] font-black uppercase hover:bg-zinc-900"
+            >
+              <MessageSquare size={14} className="mr-2" /> Ask Socratic Tutor
+            </Button>
+          </div>
           <h1 className="text-3xl font-black mt-3 mb-4 tracking-tight">
             {data.syllabus_data.syllabus_title}
           </h1>

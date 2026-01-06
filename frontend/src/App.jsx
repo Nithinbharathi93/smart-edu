@@ -13,6 +13,7 @@ import PracticeLab from './pages/Practice/PracticeLab.jsx';
 import ProfilePage from './pages/Dashboard/Profile.jsx';
 import SettingsPage from './pages/Dashboard/Settings.jsx';
 import ProblemList from './pages/Practice/ProblemList.jsx';
+import ChatPage from './pages/Dashboard/Chatpage.jsx';
 
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
             <Route path="syllabi/create" element={<CreateSyllabus />} />
             <Route path="syllabi/:id" element={<SyllabusDetail />} />
             <Route path="assessment" element={<LevelBreaker />} />
+            <Route path="chat" element={<ChatPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>

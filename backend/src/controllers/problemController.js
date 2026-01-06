@@ -65,7 +65,7 @@ Task: Create ONE LeetCode-style coding problem in valid JSON.
 JSON TEMPLATE:
 {
   "title": "Problem Title",
-  "description": "Clear problem statement",
+  "description": "Clear story-like problem statement",
   "difficulty": "${level}",
   "topics": ["${concept}"],
   "constraints": ["Constraint 1"],
@@ -80,7 +80,7 @@ CRITICAL: Return ONLY JSON. Use \\n for newlines in strings.
   try {
     // --- ATTEMPT 1: Initial Generation ---
     const response = await hf.chatCompletion({
-      model: "meta-llama/Llama-3.1-8B-Instruct",
+      model: "google/gemma-2-2b-it",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Generate a ${level} problem for ${concept} in ${preferredLang}.` }

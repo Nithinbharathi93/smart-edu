@@ -139,36 +139,120 @@ fastify.post("/ingest", async (req, reply) => {
 });
 
 fastify.post("/chat", async (req, reply) => {
-  const { pdf_id, question, level } = req.body;
+  const { syllabus_id, question, level } = req.body;
   const user = await authenticateUser(req, reply);
   if (!user) return;
-  const numericPdfId = Number(pdf_id);
-  const userLevel = level || "Beginner";
-  const queryVector = await getEmbedding(question);
-  const { data: matchedSections, error: rpcError } = await supabase.rpc(
-    "match_document_sections",
-    {
-      p_query_embedding: queryVector,
-      p_match_threshold: 0.1,
-      p_match_count: 5,
-      p_filter_pdf_id: numericPdfId,
-      p_user_id: user.id,
+
+  try {
+    // 1. Map syllabus_id to document_id
+    const { data: syllabus, error: syllError } = await supabase
+      .from("syllabi")
+      .select("document_id, syllabus_title")
+      .eq("id", syllabus_id)
+      .single();
+
+    if (syllError || !syllabus) {
+      return reply.code(404).send({ error: "Syllabus not found" });
     }
-  );
-  if (rpcError) return reply.code(500).send({ error: rpcError.message });
-  if (!matchedSections || matchedSections.length === 0) {
-    const { data: fallbackSections } = await supabase
-      .from("document_sections")
-      .select("id, content")
-      .eq("document_id", numericPdfId)
-      .limit(3)
-      .order("id", { ascending: true });
-    matchedSections = fallbackSections || [];
+
+    const docId = syllabus.document_id;
+    const userLevel = level || "Beginner";
+
+    // 2. If it's a PDF-based syllabus, perform vector search
+    let context = [];
+    let sourceIds = [];
+
+    if (docId) {
+      const queryVector = await getEmbedding(question);
+
+      // RPC call to match sections filtered by document_id
+      const { data: matchedSections, error: rpcError } = await supabase.rpc(
+        "match_document_sections",
+        {
+          p_query_embedding: queryVector,
+          p_match_threshold: 0.1,
+          p_match_count: 5,
+          p_filter_pdf_id: docId, // Now correctly mapped
+          p_user_id: user.id,
+        }
+      );
+
+      if (rpcError) throw rpcError;
+
+      if (matchedSections && matchedSections.length > 0) {
+        context = matchedSections.map((s) => s.content);
+        sourceIds = matchedSections.map((s) => s.id);
+      } else {
+        // Fallback: Just grab the first few sections of the doc if no vector match
+        const { data: fallback } = await supabase
+          .from("document_sections")
+          .select("id, content")
+          .eq("document_id", docId)
+          .limit(3);
+        
+        context = fallback?.map(s => s.content) || [];
+        sourceIds = fallback?.map(s => s.id) || [];
+      }
+    }
+
+    // 3. Generate response grounded in the retrieved chunks
+    // We pass isSyllabusMode = !!docId (true if we have document context)
+    const answer = await getChatResponse(question, context, userLevel, !!docId);
+
+    return { 
+      answer, 
+      sources: sourceIds,
+      course_title: syllabus.syllabus_title 
+    };
+
+  } catch (error) {
+    console.error("Chat Error:", error.message);
+    return reply.code(500).send({ error: "Failed to process chat request" });
   }
-  if (rpcError) return reply.code(500).send({ error: rpcError.message });
-  const context = matchedSections.map((section) => section.content);
-  const answer = await getChatResponse(question, context, userLevel);
-  return { answer, sources: matchedSections.map((s) => s.id) };
+});
+
+fastify.post("/chat/syllabus", async (req, reply) => {
+  const { syllabus_id, question, level } = req.body;
+  const user = await authenticateUser(req, reply);
+  if (!user) return;
+
+  try {
+    // 1. Fetch Syllabus Metadata
+    const { data: syllabus } = await supabase
+      .from("syllabi")
+      .select("syllabus_title, syllabus_data, duration")
+      .eq("id", syllabus_id)
+      .single();
+
+    if (!syllabus) return reply.code(404).send({ error: "Syllabus not found" });
+
+    // 2. Fetch all generated Problems for this syllabus to act as "Course Content"
+    const { data: problems } = await supabase
+      .from("coding_problems")
+      .select("title, description, concept")
+      .eq("syllabus_id", syllabus_id);
+
+    // 3. Construct the Virtual Context
+    const syllabusContext = `
+      Course Title: ${syllabus.syllabus_title}
+      Syllabus Duration: ${syllabus.duration}
+      Curriculum Structure: ${JSON.stringify(syllabus.syllabus_data)}
+    `;
+
+    const problemContext = problems?.map(p => 
+      `Topic: ${p.concept}\nProblem: ${p.title}\nDescription: ${p.description}`
+    ).join("\n\n") || "";
+
+    const combinedContext = [syllabusContext, problemContext];
+
+    // 4. Generate grounded response
+    const answer = await getChatResponse(question, combinedContext, level || "Beginner", true);
+
+    return { answer };
+  } catch (error) {
+    console.error("Syllabus Chat Error:", error.message);
+    return reply.code(500).send({ error: "Failed to process chat" });
+  }
 });
 
 fastify.post("/generate-syllabus", async (req, reply) => {
@@ -273,14 +357,14 @@ fastify.post("/generate-problem", async (req, reply) => {
       .eq("id", user.id)
       .single();
       // 3. Cache Check (Avoid re-generating if it exists)
-    const { data: existingProblem } = await supabase
-      .from("coding_problems")
-      .select("*")
-      .eq("syllabus_id", syllabus_id)
-      .eq("week_number", week_number)
-      .eq("concept", concept)
-      .single();
-      if (existingProblem) return { ...existingProblem, cached: true };
+    // const { data: existingProblem } = await supabase
+    //   .from("coding_problems")
+    //   .select("*")
+    //   .eq("syllabus_id", syllabus_id)
+    //   .eq("week_number", week_number)
+    //   .eq("concept", concept)
+    //   .single();
+    //   if (existingProblem) return { ...existingProblem, cached: true };
     // 4. Get Syllabus & Document Context
     const { data: syllabus } = await supabase
       .from("syllabi")

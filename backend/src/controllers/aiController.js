@@ -27,21 +27,21 @@ export async function getEmbedding(text) {
 }
 
 /**
- * Generates the personality-driven response using chatCompletion.
+ * Generates the response with a strict anti-hallucination guardrail.
+ * @param {boolean} isSyllabusMode - If true, applies stricter grounding rules.
  */
-export async function getChatResponse(userQuery, contextChunks, level) {
+export async function getChatResponse(userQuery, contextChunks, level, isSyllabusMode = false) {
   const systemPrompt = `
-You are VectorBot, a specialized educational assistant.
-Personality: Helpful, precise, and witty.
+You are VectorBot, an elite AI Tutor.
+Personality: Professional, encouraging, and strictly accurate.
 
-ADAPTIVE LEARNING (${level}):
-- Adjust your explanation depth for a ${level} student.
+ADAPTIVE DEPTH: Explain at a ${level} level.
 
-INSTRUCTIONS:
-1. GREETINGS: Respond politely to "hi", "hello", etc.
-2. CONTEXT USE: Use the provided Context to answer. 
-3. META QUESTIONS: If the user asks general questions like "Why should I read this?" or "What is this?", use the Context to summarize the book's value and purpose.
-4. LIMITATION: If the Context is truly empty or irrelevant to a specific factual question, say "I couldn't find that specific information."
+STRICT GROUNDING RULES:
+1. Use the provided "Course Context" (Syllabus & Problems) to answer.
+2. ${isSyllabusMode ? "CRITICAL: This is an AI-generated course. Stick ONLY to the concepts defined in the syllabus and problems provided. Do not introduce advanced external libraries or complex theories not mentioned in the context." : "Use the document context provided."}
+3. ADMIT IGNORANCE: If the query is about something totally outside the provided course topics, say: "That topic isn't covered in our current syllabus, but I can help you with what we've planned!"
+4. NO HALLUCINATION: Do not invent details about the course that aren't in the context.
 `;
 
   const contextBlock = contextChunks.length > 0 
@@ -52,10 +52,10 @@ INSTRUCTIONS:
     model: "meta-llama/Llama-3.1-8B-Instruct", 
     messages: [
       { role: "system", content: systemPrompt },
-      { role: "user", content: `Context:\n${contextBlock}\n\nUser Query: ${userQuery}` }
+      { role: "user", content: `Course Context:\n${contextBlock}\n\nUser Question: ${userQuery}` }
     ],
-    max_tokens: 500,
-    temperature: 0.7,
+    max_tokens: 800,
+    temperature: 0.2, // Lower temperature to reduce "creativity" and hallucinations
   });
 
   return response.choices[0].message.content;
