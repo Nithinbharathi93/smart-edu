@@ -97,42 +97,63 @@ backend/
 
 ## 🚀 Quick Start
 
-### 1️⃣ Database Setup (Supabase)
+---
 
-Run these migrations in your Supabase SQL Editor to support the current `server.js` logic:
+## 🛠 Database Setup & Replication
 
-```sql
--- 1. Coding Problems Table
-create table coding_problems (
-  id uuid default gen_random_uuid() primary key,
-  user_id uuid references auth.users(id),
-  syllabus_id uuid references syllabi(id) on delete cascade,
-  document_id bigint references documents(id),
-  week_number int,
-  concept text,
-  title text,
-  description text,
-  difficulty text,
-  starter_code text,
-  hidden_test_cases jsonb,
-  solution_data jsonb,
-  created_at timestamp with time zone default now()
-);
+To ensure local development environments match the production schema exactly, follow these steps to recreate the Supabase tables, RLS policies, and functions.
 
--- 2. User Profiles & Settings
-create table profiles (
-  id uuid references auth.users(id) primary key,
-  full_name text,
-  persona text, -- 'student', 'professional', etc.
-  current_level int default 1,
-  level_name text default 'Beginner',
-  default_language text default 'javascript',
-  socratic_level text default 'medium',
-  editor_config jsonb,
-  last_assessed_at timestamp with time zone
-);
+### 1. Prerequisites
+
+- A [Supabase account](https://supabase.com/) and a fresh project.
+- [Supabase CLI](https://supabase.com/docs/guides/cli) installed:
+
+```bash
+npm install supabase --save-dev
 
 ```
+
+### 2. Environment Linking
+
+Link your local environment to your personal Supabase project:
+
+```bash
+npx supabase link --project-ref <your-personal-project-id>
+
+```
+
+_Note: You will be prompted for your Database Password._
+
+### 3. Recreating the Schema
+
+We use a `schema.sql` file (generated via `db dump`) to maintain consistency. Run the following command to execute the script against your project:
+
+```bash
+npx supabase db execute --file schema.sql
+
+```
+
+**Alternative (UI Method):**
+
+1. Open your **Supabase Dashboard** -> **SQL Editor**.
+2. Copy the entire content of `schema.sql` from this repository.
+3. Paste it into a new query and click **Run**.
+
+### 4. Verification
+
+Once the script completes, verify your setup:
+
+- Check the **Table Editor** to ensure all tables (Users, Syllabus, Problems, etc.) are present.
+- Ensure **Database Extensions** (like `pgvector` for PDF embeddings) are enabled if the script requires them.
+
+---
+
+### Pro-Tip: Database Migrations
+
+If you make changes to the database structure, please do not edit `schema.sql` manually. Instead, use the migration workflow:
+
+1. Create a migration: `npx supabase db diff -f name_of_change`
+2. Push changes: `npx supabase db push`
 
 ---
 

@@ -23,5 +23,8 @@
     "p-limit": "^7.2.0",
     "pdf-parse": "^1.1.1",
     "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "supabase": "^2.70.5"
   }
 }
