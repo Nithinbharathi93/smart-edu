@@ -34,8 +34,11 @@ await fastify.register(multipart, {
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 await fastify.register(cors, {
-  origin: "http://localhost:5173", // Your frontend URL
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // Add DELETE here
+  origin: [
+    "http://localhost:5173", 
+    process.env.FRONTEND_URL 
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 });
