@@ -57,6 +57,11 @@ const authenticateUser = async (req, reply) => {
   return user;
 };
 
+fastify.get("/", async (req, reply) => {
+  return { "Developer's message": "Vaa arunachalam.. Nee varuvanu enakku theriyum" };
+});
+
+
 fastify.post("/register", async (req, reply) => {
   const { email, password } = req.body;
   if (!email || !password) {
