@@ -134,7 +134,7 @@ const DashboardLayout = () => {
             </button>
             <div>
               <h2 className="text-sm font-black text-black tracking-tight">
-                {profile ? `Welcome back, ${profile.full_name.split(' ')[0]}!` : "Hello there!"}
+                {!profile ? "Hello there!" : `Welcome back, ${profile.full_name}!`}
               </h2>
               <p className="text-[10px] font-bold text-green-600/70 uppercase tracking-widest flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />

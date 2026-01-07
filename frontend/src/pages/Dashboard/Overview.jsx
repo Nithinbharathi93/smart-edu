@@ -15,7 +15,7 @@ useEffect(() => {
     console.log(
     `%c 🥚 Easter Egg Found! \n%c${message}`,
     "color: #16a34a; font-size: 20px; font-weight: bold;", // Style for first line
-    "color: #333; font-size: 14px; font-style: italic;"    // Style for second line
+    "font-size: 14px; font-style: italic;"    // Style for second line
   );
   }, []); // Run once
 
