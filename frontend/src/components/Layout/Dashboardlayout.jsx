@@ -144,10 +144,12 @@ const DashboardLayout = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="p-2 text-green-600/70 hover:text-green-600 hover:bg-green-50/50 rounded-full transition-all relative">
+            <Link 
+              to="/dashboard/devs"
+            className="p-2 text-green-600/70 hover:text-green-600 hover:bg-green-50/50 rounded-full transition-all relative">
               <Bell size={18} />
               <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-rose-500 rounded-full border border-white"></span>
-            </button>
+            </Link>
             
             <div className="h-6 w-px bg-slate-200" />
 

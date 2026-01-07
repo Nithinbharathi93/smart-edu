@@ -10,6 +10,15 @@ const DashboardOverview = () => {
   const [syllabi, setSyllabi] = useState([]);
   const [loading, setLoading] = useState(true);
 
+useEffect(() => {
+    const message = "Maha Prabhu.. Neenga ingayum vandhutingala?";
+    console.log(
+    `%c 🥚 Easter Egg Found! \n%c${message}`,
+    "color: #16a34a; font-size: 20px; font-weight: bold;", // Style for first line
+    "color: #333; font-size: 14px; font-style: italic;"    // Style for second line
+  );
+  }, []); // Run once
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -70,7 +79,6 @@ const DashboardOverview = () => {
     </div>
   );
 };
-
 const EmptyDashboard = ({ navigate }) => (
   <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-16 text-center">
     <Plus className="text-slate-300 mx-auto mb-4" size={32} />
