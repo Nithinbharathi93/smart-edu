@@ -19,12 +19,12 @@ const Header = ({ user }) => {
         <div className="relative">
           <img 
             src={logo} 
-            alt="SmartEdu Logo" 
+            alt="Zentellect Logo" 
             className="h-9 w-auto object-contain transition-transform group-hover:scale-105" 
           />
         </div>
         <span className="text-lg font-black tracking-tighter text-slate-900 uppercase italic">
-          Smart<span className="text-emerald-500">Edu</span>
+          Zen<span className="text-emerald-500">tellect</span>
         </span>
       </Link>
 

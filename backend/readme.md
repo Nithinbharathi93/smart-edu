@@ -1,6 +1,6 @@
-# 🎓 Smart Edu: AI-Powered Learning Companion
+# 🎓 Zentellect: AI-Powered Learning Companion
 
-Smart Edu is a full-stack RAG (Retrieval-Augmented Generation) application designed to transform static PDF documents into interactive, personalized learning experiences. Users can upload textbooks, chat with them based on their expertise level, and generate structured, time-bound syllabi.
+Zentellect is a full-stack RAG (Retrieval-Augmented Generation) application designed to transform static PDF documents into interactive, personalized learning experiences. Users can upload textbooks, chat with them based on their expertise level, and generate structured, time-bound syllabi.
 
 ## 🚀 Features
 

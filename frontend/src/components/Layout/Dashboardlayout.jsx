@@ -68,11 +68,11 @@ const DashboardLayout = () => {
             <div className=" p-2 rounded-xl text-white shadow-lg shadow-green-50/500/20">
               <img 
                           src={logo} 
-                          alt="SmartEdu Logo" 
+                          alt="Zentellect Logo" 
                           className="h-9 w-auto object-contain transition-transform group-hover:scale-105" 
                         />
             </div>
-            <span className="text-xl font-black text-white tracking-tighter italic">SmartEdu</span>
+            <span className="text-xl font-black text-white tracking-tighter italic">Zentellect</span>
           </Link>
 
           {/* Navigation Links */}

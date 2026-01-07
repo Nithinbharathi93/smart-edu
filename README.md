@@ -1,4 +1,4 @@
-# 🚀 Smart-Edu: AI-Powered Learning Platform
+# 🚀 Zentellect: AI-Powered Learning Platform
 
 <div align="center">
 
@@ -239,6 +239,6 @@ Need help? We're here for you!
 
 ### Made with ❤️ for the learning community
 
-**[⭐ Star us on GitHub](https://github.com/Nithinbharathi93/smart-edu)** if you love Smart-Edu!
+**[⭐ Star us on GitHub](https://github.com/Nithinbharathi93/smart-edu)** if you love - Zentellect!
 
 </div>

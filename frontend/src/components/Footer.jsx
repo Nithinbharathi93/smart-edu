@@ -7,7 +7,7 @@ const Footer = () => (
       <div>
         <div className="flex items-center gap-2 mb-4">
           <BookOpen className="text-green-600 w-5 h-5" />
-          <span className="text-lg font-bold">SmartEdu</span>
+          <span className="text-lg font-bold">Zentellect</span>
         </div>
         <p className="text-slate-500 text-sm leading-relaxed">
           The AI-powered learning companion that builds personalized syllabi and provides Socratic tutoring for developers.
@@ -21,14 +21,14 @@ const Footer = () => (
       </div>
       <div className="text-sm text-slate-600">
         <h4 className="font-bold text-black mb-2">Connect</h4>
-        <p>Support: help@smartedu.ai</p>
+        <p>Support: help@zentellect.ai</p>
         <div className="mt-4 flex gap-4">
            {/* Social Icons Placeholder */}
         </div>
       </div>
     </div>
     <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-slate-200 text-center text-green-600/70 text-xs">
-      © 2026 SmartEdu AI Inc. All rights reserved.
+      © 2026 Zentellect Inc. All rights reserved.
     </div>
   </footer>
 );

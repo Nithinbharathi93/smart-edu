@@ -1,4 +1,4 @@
-# SmartEdu Backend API Documentation
+# Zentellect Backend API Documentation
 
 ## Authentication
 
