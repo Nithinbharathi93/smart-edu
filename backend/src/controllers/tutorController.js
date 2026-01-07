@@ -37,7 +37,7 @@ JSON SCHEMA:
 
   try {
     const response = await hf.chatCompletion({
-      model: "meta-llama/Llama-3.1-8B-Instruct",
+      model: "google/gemma-2-2b-it",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Problem: ${problem.title}\nDescription: ${problem.description}\nLanguage: ${language}` }
