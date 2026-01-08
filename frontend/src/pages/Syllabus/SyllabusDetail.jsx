@@ -93,14 +93,13 @@ const SyllabusDetail = () => {
       {/* Header Info */}
       <div className="bg-green-600 rounded-3xl p-8 text-white mb-10 relative overflow-hidden shadow-xl shadow-indigo-100">
         <div className="relative z-10">
-          <div className="flex justify-between items-start">
-            <span className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em]">
+          <div className="h-8 flex justify-between items-start">
+            <span className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
               {data.level} Module
             </span>
-            {/* Added Chat Button */}
             <Button 
               onClick={() => navigate(`/dashboard/chat?syllabus_id=${syllabusId}&level=${data.level}`)}
-              className="h-8 px-4 bg-black text-white border-none text-[10px] font-black uppercase hover:bg-zinc-900"
+              className="h-8 px-4 bg-none text-white text-[10px] font-black uppercase hover:bg-zinc-900 shadow-none border border-white/100"
             >
               <MessageSquare size={14} className="mr-2" /> Ask Socratic Tutor
             </Button>
