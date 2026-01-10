@@ -214,22 +214,9 @@ If you make changes to the database structure, please do not edit `schema.sql` m
 
 ---
 
-## 🤝 Contributing
-
-We love contributions! Here's how you can help:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
 ## 💬 Support
 
 Need help? We're here for you!
-- 📧 Email: nithinbharathi9325@gmail.com
 - 💭 GitHub Issues: [Report a Bug](https://github.com/Nithinbharathi93/smart-edu/issues)
 - 💡 Discussions: [Ask a Question](https://github.com/Nithinbharathi93/smart-edu/discussions)
 
