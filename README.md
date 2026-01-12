@@ -216,7 +216,7 @@ If you make changes to the database structure, please do not edit `schema.sql` m
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 We love contributions! Here's how you can help:
 
@@ -231,7 +231,6 @@ We love contributions! Here's how you can help:
 ## Support
 
 Need help? We're here for you!
-- 📧 Email: nithinbharathi9325@gmail.com
 - 💭 GitHub Issues: [Report a Bug](https://github.com/Nithinbharathi93/smart-edu/issues)
 - 💡 Discussions: [Ask a Question](https://github.com/Nithinbharathi93/smart-edu/discussions)
 
