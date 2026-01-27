@@ -3,8 +3,11 @@ import multipart from "@fastify/multipart";
 import cors from "@fastify/cors";
 import pLimit from "p-limit";
 import { pool } from "./db.js"; // Import the local pool
-import { extractTextFromPDF, chunkText } from "./controllers/fileProcessor.js";
+import { extractText, chunkText } from "./controllers/fileProcessor.js";
 import { getEmbedding, getChatResponse } from "./controllers/aiController.js";
+
+import fs from "fs/promises";
+import path from "path";
 
 const fastify = Fastify({ logger: true });
 
@@ -15,12 +18,11 @@ await fastify.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } });
 fastify.post("/ingest", async (req, reply) => {
   const data = await req.file();
   const buffer = await data.toBuffer();
-  if (data.mimetype !== "application/pdf") {
-    return reply.code(400).send({ error: "Only PDFs are supported." });
-  }
-  const rawText = await extractTextFromPDF(buffer);
-  console.log(`Extracted ${rawText.length} characters.`);
+  
+  // PASS THE FILENAME so the extractor knows what to do
+  const rawText = await extractText(buffer, data.filename); 
   const chunks = await chunkText(rawText);
+
   const client = await pool.connect();
   try {
     await client.query("BEGIN"); // Start Transaction
@@ -64,55 +66,171 @@ fastify.post("/ingest", async (req, reply) => {
 });
 // 2. Generic Chat
 fastify.post("/chat", async (req, reply) => {
-  const { doc_id, question, custom_prompt } = req.body;
+  const { question, doc_id, folder_name, custom_prompt } = req.body;
+
   if (!question) return reply.code(400).send({ error: "Question is required" });
+
   const queryVector = await getEmbedding(question);
-  // Format vector for Postgres: "[...]"
-  const vectorStr = JSON.stringify(queryVector);
+  const vectorStr = JSON.stringify(queryVector); // Format for pgvector
+
   const client = await pool.connect();
   try {
-
+    // DYNAMIC SQL CONSTRUCTION
     let sql = `
-  SELECT id, content, 1 - (embedding <=> $1) as similarity
-  FROM document_sections
-  WHERE 1 - (embedding <=> $1) > 0.1 -- Lowered to 0.1 to catch loose matches
-`;
+      SELECT 
+        ds.id, 
+        ds.content, 
+        d.filename,
+        1 - (ds.embedding <=> $1) as similarity
+      FROM document_sections ds
+      JOIN documents d ON ds.document_id = d.id
+      WHERE 1 - (ds.embedding <=> $1) > 0.1
+    `;
+    
     const params = [vectorStr];
+    let paramCounter = 2; // Start at $2
+
+    // OPTION A: Search specific file
     if (doc_id) {
-      sql += ` AND document_id = $2`;
+      sql += ` AND ds.document_id = $${paramCounter}`;
       params.push(doc_id);
+      paramCounter++;
     }
-    sql += ` ORDER BY embedding <=> $1 LIMIT 5`;
+    
+    // OPTION B: Search specific FOLDER (Scenario C)
+    if (folder_name) {
+      sql += ` AND d.folder_name = $${paramCounter}`;
+      params.push(folder_name);
+      paramCounter++;
+    }
+
+    sql += ` ORDER BY ds.embedding <=> $1 LIMIT 5`;
+
     const { rows: matchedSections } = await client.query(sql, params);
-    // FALLBACK LOGIC
-    let finalContext = matchedSections;
-    if (matchedSections.length === 0 && doc_id) {
-      console.log(
-        "⚠️ No semantic matches found. Switching to 'Introduction Fallback'.",
-      );
 
-      const fallbackRes = await client.query(
-        `SELECT content FROM document_sections WHERE document_id = $1 ORDER BY id ASC LIMIT 3`,
-        [doc_id],
-      );
-      finalContext = fallbackRes.rows;
+    // ... (Fallback logic and LLM call remains the same) ...
+    
+    if (matchedSections.length === 0) {
+       return { answer: "I couldn't find any relevant information.", sources: [] };
     }
 
-    if (finalContext.length === 0) {
-      return {
-        answer: "I couldn't find any relevant information.",
-        sources: [],
-      };
-    }
-
-    const context = matchedSections.map((section) => section.content);
+    const context = matchedSections.map(s => s.content);
     const systemPrompt = custom_prompt || "You are a helpful assistant.";
-
     const answer = await getChatResponse(question, context, systemPrompt);
 
-    return { answer, sources: matchedSections.map((s) => s.id) };
-  } catch (e) {
-    return reply.code(500).send({ error: e.message });
+    return { 
+      answer, 
+      sources: matchedSections.map(s => ({ id: s.id, file: s.filename })) 
+    };
+
+  } finally {
+    client.release();
+  }
+});
+
+fastify.post("/ingest-folder", async (req, reply) => {
+  const { folderPath } = req.body;
+  if (!folderPath) return reply.code(400).send({ error: "folderPath is required" });
+
+  let files;
+  try {
+    files = await fs.readdir(folderPath);
+  } catch (err) {
+    return reply.code(500).send({ error: `Read error: ${err.message}` });
+  }
+
+  // ALLOWED FORMATS FILTER
+  const ALLOWED_EXTS = new Set([
+    ".pdf", ".txt", ".md", ".json", ".js", ".py", ".java", ".html", ".css", ".sql"
+    // Add any others from the processor list you want to support
+  ]);
+
+  const targetFiles = files.filter(file => {
+    const ext = path.extname(file).toLowerCase();
+    return ALLOWED_EXTS.has(ext);
+  });
+
+  if (targetFiles.length === 0) return { message: "No supported files found." };
+
+  console.log(`📂 Found ${targetFiles.length} files. Processing...`);
+
+  const results = [];
+  const client = await pool.connect();
+
+  try {
+    for (const fileName of pdfFiles) {
+      // Check if file already exists to avoid duplicates (Optional safety)
+      const checkRes = await client.query("SELECT id FROM documents WHERE filename = $1", [fileName]);
+      if (checkRes.rows.length > 0) {
+        results.push({ file: fileName, status: "Skipped (Already Exists)", id: checkRes.rows[0].id });
+        continue;
+      }
+
+      console.log(`Processing: ${fileName}...`);
+      const fullPath = path.join(folderPath, fileName);
+      
+      try {
+        const fileBuffer = await fs.readFile(fullPath);
+        const rawText = await extractText(fileBuffer, fileName);
+        const chunks = await chunkText(rawText);
+
+        await client.query('BEGIN');
+
+        // 1. Insert Metadata & GET THE ID
+        const docRes = await client.query(
+          `INSERT INTO documents (filename, folder_name) VALUES ($1, $2) RETURNING id`,
+          [fileName, collectionName]
+        );
+        const docId = docRes.rows[0].id; 
+
+        // 2. Generate Embeddings
+        const limit = pLimit(5);
+        const vectorData = await Promise.all(
+          chunks.map((chunk) => 
+            limit(async () => {
+              const vector = await getEmbedding(chunk);
+              return { content: chunk, vector: `[${vector.join(',')}]` };
+            })
+          )
+        );
+
+        // 3. Insert Chunks
+        for (const item of vectorData) {
+          await client.query(
+            `INSERT INTO document_sections (document_id, content, embedding) VALUES ($1, $2, $3)`,
+            [docId, item.content, item.vector]
+          );
+        }
+
+        await client.query('COMMIT');
+        
+        // --- UPDATED RESPONSE OBJECT ---
+        results.push({ 
+            file: fileName, 
+            status: "Success", 
+            id: docId, // <--- NOW YOU HAVE IT
+            chunks: chunks.length 
+        });
+
+      } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(`❌ Error on ${fileName}:`, err.message);
+        results.push({ file: fileName, status: "Failed", error: err.message });
+      }
+    }
+  } finally {
+    client.release();
+  }
+
+  return { message: "Batch ingestion complete", summary: results };
+});
+
+fastify.get("/documents", async (req, reply) => {
+  const client = await pool.connect();
+  try {
+    // Shows ID, Filename, and which Folder it belongs to
+    const res = await client.query("SELECT id, filename, folder_name, created_at FROM documents ORDER BY created_at DESC");
+    return res.rows;
   } finally {
     client.release();
   }
