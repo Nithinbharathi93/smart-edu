@@ -141,7 +141,7 @@ fastify.post("/ingest-folder", async (req, reply) => {
 
   // ALLOWED FORMATS FILTER
   const ALLOWED_EXTS = new Set([
-    ".pdf", ".docx", ".pptx", ".txt", ".md", ".json", ".js", ".py", ".java", ".html", ".css", ".sql", ".epub", ".csv", ".xlsx", ".xls"
+    ".pdf", ".docx", ".pptx", ".txt", ".md", ".json", ".js", ".py", ".java", ".html", ".css", ".sql", ".epub", ".csv", ".xlsx", ".xls", ".png", ".jpg", ".jpeg"
   ]);
 
   const targetFiles = files.filter(file => {

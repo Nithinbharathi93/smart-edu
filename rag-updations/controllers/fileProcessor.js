@@ -6,16 +6,19 @@ import EPub from "epub2";
 import path from "path";
 import fs from "fs/promises";
 import os from "os";
-import * as XLSX from "xlsx"; // For Excel
-import { parse } from "csv-parse/sync"; // For CSV
+import * as XLSX from "xlsx"; 
+import { parse } from "csv-parse/sync"; 
+import Tesseract from "tesseract.js"; // <--- OCR ENGINE
+import AdmZip from "adm-zip";         // <--- ZIP OPENER (For PPTX Images)
 import { CONFIG } from "../config.js";
 
 const TEXT_EXTENSIONS = new Set([
   ".txt", ".md", ".markdown", ".json", ".xml", 
   ".html", ".css", ".js", ".jsx", ".ts", ".tsx", 
-  ".py", ".java", ".c", ".cpp", ".sql", ".env" // Treat .sql as code/text
+  ".py", ".java", ".c", ".cpp", ".sql", ".env"
 ]);
 
+// --- HELPER 1: TEMP FILES ---
 async function parseWithTempFile(buffer, filename, parserFunction) {
   const tempPath = path.join(os.tmpdir(), `rag_temp_${Date.now()}_${filename}`);
   try {
@@ -26,14 +29,9 @@ async function parseWithTempFile(buffer, filename, parserFunction) {
   }
 }
 
-/**
- * Helper: Convert Spreadsheet Rows to Sentences
- * Input: { Name: "John", Role: "Admin" }
- * Output: "Name: John, Role: Admin."
- */
+// --- HELPER 2: SPREADSHEET SERIALIZER ---
 function serializeRow(row, rowIndex) {
   const parts = Object.entries(row).map(([header, value]) => {
-    // Skip empty cells
     if (value === null || value === undefined || value === "") return null;
     return `${header}: ${value}`;
   });
@@ -42,97 +40,136 @@ function serializeRow(row, rowIndex) {
   return `Row ${rowIndex + 1} - ${parts.filter(p => p).join(", ")}.`;
 }
 
+// --- HELPER 3: OCR FUNCTION (Reads text from image buffer) ---
+async function performOCR(imageBuffer) {
+  try {
+    const { data: { text } } = await Tesseract.recognize(imageBuffer, 'eng', {
+      // logger: m => console.log(m) // Uncomment to see progress bars
+    });
+    return text.trim();
+  } catch (err) {
+    console.warn("OCR Failed on image:", err.message);
+    return "";
+  }
+}
+
+// --- HELPER 4: EXTRACT IMAGES FROM OFFICE FILES (PPTX) ---
+async function extractAndOCRImagesFromOffice(buffer) {
+  try {
+    const zip = new AdmZip(buffer);
+    const zipEntries = zip.getEntries();
+    const imageTexts = [];
+
+    // Find images inside the "media" folder of the Office file
+    const imageEntries = zipEntries.filter(entry => 
+      entry.entryName.match(/media\/.*\.(png|jpg|jpeg)$/i)
+    );
+
+    if (imageEntries.length > 0) {
+      console.log(`[OCR] Found ${imageEntries.length} images inside presentation. Scanning...`);
+    }
+
+    for (const entry of imageEntries) {
+      const imgBuffer = entry.getData();
+      const text = await performOCR(imgBuffer);
+      if (text.length > 5) { // Filter out tiny noise
+        imageTexts.push(`[Image Slide Text]: ${text}`);
+      }
+    }
+
+    return imageTexts.join("\n\n");
+  } catch (err) {
+    console.warn(`[OCR Warning] Could not scan images inside file: ${err.message}`);
+    return "";
+  }
+}
+
+// --- MAIN EXTRACTOR ---
 export async function extractText(buffer, filename) {
   const ext = path.extname(filename).toLowerCase();
 
   try {
-    // --- 1. SPREADSHEETS (.csv, .xlsx) ---
-    
-    // CSV Handling
-    // CSV Handling - UPDATED WITH DEBUGGING
-    if (ext === ".csv") {
-      const content = buffer.toString("utf-8");
-      
-      // DEBUG: Check if we can read the raw text
-      console.log(`[CSV Debug] Raw content length: ${content.length}`);
-      
-      // FIX: Try to auto-detect if it's not a comma
-      let delimiter = ",";
-      if (content.indexOf(";") > -1 && content.indexOf(";") > content.indexOf(",")) {
-        delimiter = ";"; // Switch to semicolon if likely
-        console.log("[CSV Debug] Detected semicolon delimiter");
-      }
-      
-      const records = parse(content, { 
-        columns: true,       // Use first row as headers
-        skip_empty_lines: true,
-        trim: true,          // Trim whitespace from values
-        delimiter: delimiter // Use dynamic delimiter
-      });
-
-      // DEBUG: See how many rows were parsed
-      console.log(`[CSV Debug] Parsed ${records.length} records.`);
-      
-      if (records.length === 0) {
-         console.warn("[CSV Warning] No records found. Check if the file is empty or headers are missing.");
-         return "";
-      }
-
-      // Convert rows to sentences
-      const text = records.map((row, i) => serializeRow(row, i)).join("\n");
-      
-      // DEBUG: Check final text size
-      console.log(`[CSV Debug] Final text size: ${text.length} chars`);
-      
-      return text;
+    // 1. DIRECT IMAGES (.png, .jpg) - NEW
+    if (ext === ".png" || ext === ".jpg" || ext === ".jpeg") {
+      console.log(`[OCR] Scanning single image: ${filename}...`);
+      return await performOCR(buffer);
     }
 
-    // Excel Handling (.xlsx, .xls)
-    if (ext === ".xlsx" || ext === ".xls") {
-      const workbook = XLSX.read(buffer, { type: "buffer" });
-      let fullText = "";
-
-      workbook.SheetNames.forEach(sheetName => {
-        const sheet = workbook.Sheets[sheetName];
-        // Convert sheet to JSON objects
-        const records = XLSX.utils.sheet_to_json(sheet);
-        
-        fullText += `--- Sheet: ${sheetName} ---\n`;
-        fullText += records.map((row, i) => serializeRow(row, i)).join("\n");
-        fullText += "\n\n";
-      });
-
-      return fullText.trim();
-    }
-
-    // --- 2. EXISTING HANDLERS ---
-    
-    // PDF
-    if (ext === ".pdf") {
-      const data = await pdfParse(buffer);
-      return data.text.replace(/\n\n+/g, "\n").replace(/\0/g, "").trim();
-    }
-
-    // Word
-    if (ext === ".docx") {
-      const result = await mammoth.extractRawText({ buffer: buffer });
-      return result.value.trim();
-    }
-
-    // PowerPoint
+    // 2. PPTX (Text + Image OCR) - UPDATED
     if (ext === ".pptx") {
-      return await parseWithTempFile(buffer, filename, async (tempPath) => {
-        return new Promise((resolve, reject) => {
+      // A. Get standard text (using temp file method)
+      let fullText = await parseWithTempFile(buffer, filename, async (tempPath) => {
+        return new Promise((resolve) => {
           officeParser.parseOffice(tempPath, (data, err) => {
-             if (err) return reject(err);
+             // Resolve even if err to allow partial success
              const safeText = (typeof data === 'string') ? data : "";
              resolve(safeText);
           });
         });
       });
+
+      // B. Get hidden image text (The Fix for 0 chunks)
+      const imageText = await extractAndOCRImagesFromOffice(buffer);
+      if (imageText) {
+        fullText += "\n\n--- Extracted Text from Images ---\n" + imageText;
+      }
+
+      return fullText;
     }
 
-    // E-Books
+    // 3. CSV (Your Debug-Enhanced Version)
+    if (ext === ".csv") {
+      const content = buffer.toString("utf-8");
+      
+      console.log(`[CSV Debug] Raw content length: ${content.length}`);
+      
+      let delimiter = ",";
+      if (content.indexOf(";") > -1 && content.indexOf(";") > content.indexOf(",")) {
+        delimiter = ";";
+        console.log("[CSV Debug] Detected semicolon delimiter");
+      }
+      
+      const records = parse(content, { 
+        columns: true, skip_empty_lines: true, trim: true, delimiter: delimiter 
+      });
+
+      console.log(`[CSV Debug] Parsed ${records.length} records.`);
+      
+      if (records.length === 0) {
+         console.warn("[CSV Warning] No records found.");
+         return "";
+      }
+
+      const text = records.map((row, i) => serializeRow(row, i)).join("\n");
+      console.log(`[CSV Debug] Final text size: ${text.length} chars`);
+      return text;
+    }
+
+    // 4. EXCEL
+    if (ext === ".xlsx" || ext === ".xls") {
+      const workbook = XLSX.read(buffer, { type: "buffer" });
+      let fullText = "";
+      workbook.SheetNames.forEach(sheetName => {
+        const sheet = workbook.Sheets[sheetName];
+        const records = XLSX.utils.sheet_to_json(sheet);
+        fullText += `--- Sheet: ${sheetName} ---\n` + records.map((row, i) => serializeRow(row, i)).join("\n") + "\n\n";
+      });
+      return fullText.trim();
+    }
+
+    // 5. PDF
+    if (ext === ".pdf") {
+      const data = await pdfParse(buffer);
+      return data.text.replace(/\n\n+/g, "\n").replace(/\0/g, "").trim();
+    }
+
+    // 6. WORD
+    if (ext === ".docx") {
+      const result = await mammoth.extractRawText({ buffer: buffer });
+      return result.value.trim();
+    }
+
+    // 7. E-BOOKS
     if (ext === ".epub") {
       return await parseWithTempFile(buffer, filename, async (tempPath) => {
         return new Promise((resolve, reject) => {
@@ -140,9 +177,7 @@ export async function extractText(buffer, filename) {
           epub.on("end", () => {
             let fullText = "";
             epub.flow.forEach((chapter) => {
-              epub.getChapter(chapter.id, (err, text) => {
-                 if (text) fullText += text + " ";
-              });
+              epub.getChapter(chapter.id, (err, text) => { if (text) fullText += text + " "; });
             });
             setTimeout(() => resolve(fullText.replace(/<[^>]*>/g, ' ')), 500);
           });
@@ -152,7 +187,7 @@ export async function extractText(buffer, filename) {
       });
     }
 
-    // Native Text & SQL
+    // 8. NATIVE TEXT
     if (TEXT_EXTENSIONS.has(ext)) {
       return buffer.toString("utf-8").trim();
     }
